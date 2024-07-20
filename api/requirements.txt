@@ -1,0 +1,12 @@
+django
+djangorestframework
+psycopg2-binary
+gunicorn
+Pillow
+django-cors-headers
+django-filter
+requests
+uwsgi
+django-import-export
+django-rest-passwordreset
+pylint-django

@@ -1,0 +1,46 @@
+version: "3"
+
+volumes:
+  local_postgres_data: {}
+  local_postgres_data_backups: {}
+
+services:
+  #postgres:
+  #  image: postgres:12
+  #  volumes:
+  #    - local_postgres_data:/var/lib/postgresql/data
+  #    - local_postgres_data_backups:/backups
+  #  ports:
+  #    - "5430:5432"
+  #  environment:
+  #    POSTGRES_USER: postgres
+  #    POSTGRES_PASSWORD: postgres
+  #    POSTGRES_DB: api
+
+  api: &api
+    build: ./api
+    image: api_move4it
+    #depends_on:
+    #  - postgres
+    volumes:
+      - .:/code
+    ports:
+      - "8000:8000"
+
+        ##app:
+        ##build: ./app
+        ##image: app
+        ##ports:
+        ##- "4200:80"
+        ##depends_on:
+        ##- django
+        #- postgres
+
+        #landing:
+        ##build: ./landing
+        ##image: landing
+        ##ports:
+        ###- "4200:80"
+        ##depends_on:
+        ###- django
+        ###- postgres

@@ -4,8 +4,16 @@ from django.contrib import admin
 from django.utils.html import format_html
 from api.move4it.models import (Blog, Enterprise, Group, Activity,
                                 ActivityCategory, TypeMedition, RegisterActivity, Competence,
-                                FileRegisterActivity)
+                                FileRegisterActivity, Interval)
 admin.site.register(Blog)
+
+
+@admin.register(Interval)
+class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
+    list_display = ('id', 'start_date', 'end_date',)
+    search_fields = ('name', )
+    list_filter = ('created', )
+    date_hierarchy = 'created'
 
 
 @admin.register(Enterprise)

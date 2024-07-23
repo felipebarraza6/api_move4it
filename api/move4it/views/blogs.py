@@ -13,7 +13,6 @@ from django_filters import rest_framework as filters
 
 # Permissions
 from rest_framework.permissions import (
-    AllowAny,
     IsAuthenticated
 )
 

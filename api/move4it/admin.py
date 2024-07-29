@@ -10,7 +10,7 @@ admin.site.register(Blog)
 
 @admin.register(Interval)
 class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('id', 'start_date', 'end_date',)
+    list_display = ('id', "competence", 'start_date', 'end_date',)
     search_fields = ('name', )
     list_filter = ('created', )
     date_hierarchy = 'created'

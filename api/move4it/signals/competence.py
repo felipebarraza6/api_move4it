@@ -38,7 +38,7 @@ def create_intervals(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Interval)
 def create_assignments(sender, instance, created, **kwargs):
-    if not created and instance.generate_assignments:
+    if instance.generate_assignments:
         # Desconectar temporalmente la señal para evitar recursión
         post_save.disconnect(create_assignments, sender=Interval)
         try:

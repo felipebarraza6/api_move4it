@@ -2,6 +2,7 @@
 from import_export.admin import ExportActionMixin
 from django.contrib import admin
 from django.utils.html import format_html
+from datetime import date
 from api.move4it.models import (Blog, Enterprise, Group, Activity,
                                 ActivityCategory, TypeMedition, RegisterActivity, Competence,
                                 FileRegisterActivity, Interval)
@@ -10,7 +11,7 @@ admin.site.register(Blog)
 
 @admin.register(Interval)
 class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('id', "competence", 'get_enterprise', 'start_date',
+    list_display = ('id', "competence", 'get_enterprise', "is_finished", 'start_date',
                     'end_date', 'get_activities_count')
     search_fields = ('name', )
     list_filter = ('created', )
@@ -103,8 +104,8 @@ class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(RegisterActivity)
 class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('activity', "get_users", "get_groups",
-                    "get_enterprises", 'observation', "is_active")
+    list_display = ('activity', "get_users", "get_enterprises", "get_groups", "start_date_time", "finish_date_time",
+                    "is_completed", "is_load")
     list_filter = ('activity', 'users', 'groups', 'enterprises', 'activity',)
     search_fields = ('activity', )
     date_hierarchy = 'created'
@@ -115,25 +116,56 @@ class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
     def get_groups(self, obj):
         """get groups"""
-        return format_html("<br>".join([p.group_participation.name for p in obj.groups.all()]))
+        return format_html("<br>".join([p.group_participation.name for p in obj.users.all()]))
 
     def get_enterprises(self, obj):
         """get enterprises"""
-        return format_html("<br>".join([p.group_participation.enterprise.name for p in obj.groups.all()]))
+        return format_html("<br>".join([p.group_participation.enterprise.name for p in obj.users.all()]))
 
-    get_users.short_description = 'Usuarios'  # Nombre del campo en el admin
-    get_groups.short_description = 'Grupos'
-    get_enterprises.short_description = 'Empresas'
-
-    get_users.short_description = 'Usuarios'  # Nombre del campo en el admin
-    get_groups.short_description = 'Grupos'
-    get_enterprises.short_description = 'Empresas'
+    get_users.short_description = 'Usuario'  # Nombre del campo en el admin
+    get_groups.short_description = 'Grupo'
+    get_enterprises.short_description = 'Empresa'
 
 
 @admin.register(Competence)
 class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('name',  "enterprise", "start_date",
-                    "interval_quantity", "days_for_interval")
+    list_display = ('name',  "enterprise", "is_finished", "start_date", "total_duration", "get_actual_invertal",
+                    "interval_quantity", "days_for_interval", "get_quantity_groups", "get_quantity_users")
+
+    def total_duration(self, obj):
+        """Calculate the total duration in months, weeks, and days"""
+        duration = obj.end_date - obj.start_date
+        total_days = duration.days
+        total_weeks = total_days // 7
+        total_months = total_days // 30
+        remaining_days = total_days % 30
+        return f"{total_months} Meses, {total_weeks} semanas y {remaining_days} días"
+    total_duration.short_description = 'Duración total'
+
+    def get_quantity_groups(self, obj):
+        """get quantity groups"""
+        return Group.objects.filter(enterprise=obj.enterprise).count()
+    get_quantity_groups.short_description = 'Cantidad de Grupos'
+
+    def get_quantity_users(self, obj):
+        """get quantity users"""
+        groups = Group.objects.filter(enterprise=obj.enterprise)
+        user_count = sum(group.user_set.count() for group in groups)
+        return user_count
+    get_quantity_users.short_description = 'Cantidad de Participantes'
+
+    def get_actual_invertal(self, obj):
+        """get actual interval"""
+        today = date.today()
+        intervals = obj.interval_set.filter(
+            start_date__lte=today, end_date__gte=today)
+        interval = intervals.first()
+        if interval:
+            return f"{interval.start_date.strftime('%Y-%m-%d')} \n {interval.end_date.strftime('%Y-%m-%d')}"
+        return None
+
+    get_actual_invertal.short_description = 'Intervalo Actual'
+
     search_fields = ('name', )
     list_filter = ('created', )
     date_hierarchy = 'created'

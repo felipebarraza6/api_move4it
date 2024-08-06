@@ -34,8 +34,8 @@ class RegisterActivity(ModelApi):
 
     is_completed = models.BooleanField(
         default=False, verbose_name='esta completado')
-    is_finished = models.BooleanField(
-        default=False, verbose_name='esta finalizado')
+    is_load = models.BooleanField(
+        default=False, verbose_name='cargo evidencia')
 
     class Meta:
         """Register activity model."""

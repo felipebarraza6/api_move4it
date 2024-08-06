@@ -10,10 +10,22 @@ admin.site.register(Blog)
 
 @admin.register(Interval)
 class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('id', "competence", 'start_date', 'end_date',)
+    list_display = ('id', "competence", 'get_enterprise', 'start_date',
+                    'end_date', 'get_activities_count')
     search_fields = ('name', )
     list_filter = ('created', )
     date_hierarchy = 'created'
+
+    def get_enterprise(self, obj):
+        """get enterprise"""
+        return obj.competence.enterprise.name
+
+    def get_activities_count(self, obj):
+        """get activities count"""
+        return obj.activities.count()
+
+    get_enterprise.short_description = 'Empresa'
+    get_activities_count.short_description = 'Cantidad de Actividades'
 
 
 @admin.register(Enterprise)
@@ -103,11 +115,15 @@ class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
     def get_groups(self, obj):
         """get groups"""
-        return format_html("<br>".join([p.name for p in obj.groups.all()]))
+        return format_html("<br>".join([p.group_participation.name for p in obj.groups.all()]))
 
     def get_enterprises(self, obj):
         """get enterprises"""
-        return format_html("<br>".join([p.name for p in obj.enterprises.all()]))
+        return format_html("<br>".join([p.group_participation.enterprise.name for p in obj.groups.all()]))
+
+    get_users.short_description = 'Usuarios'  # Nombre del campo en el admin
+    get_groups.short_description = 'Grupos'
+    get_enterprises.short_description = 'Empresas'
 
     get_users.short_description = 'Usuarios'  # Nombre del campo en el admin
     get_groups.short_description = 'Grupos'
@@ -116,7 +132,8 @@ class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(Competence)
 class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('name', 'description')
+    list_display = ('name',  "enterprise", "start_date",
+                    "interval_quantity", "days_for_interval")
     search_fields = ('name', )
     list_filter = ('created', )
     date_hierarchy = 'created'

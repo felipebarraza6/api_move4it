@@ -22,7 +22,7 @@ class User(ModelApi, AbstractUser):
     )
 
     identification_number = models.CharField(
-        max_length=80, verbose_name='(rut o pasaporte)')
+        max_length=80, verbose_name='(rut o pasaporte)', unique=True)
     gengers = [('M', 'Masculino'), ('F', 'Femenino')]
     gender = models.CharField(
         max_length=30, verbose_name='Género', blank=True, null=True, choices=gengers)
@@ -73,9 +73,10 @@ class User(ModelApi, AbstractUser):
     def save(self, *args, **kwargs):
         # Check if this is a new user
         if len(self.identification_number) == 9:
-            self.identification_number = f"{self.identification_number[:2]}.{self.identification_number[2:5]}.{self.identification_number[5:8]}-{self.identification_number[8]}"
+            self.identification_number = f"{self.identification_number[:2]}.{self.identification_number[2:5]}.{
+                self.identification_number[5:8]}-{self.identification_number[8]}"
         elif len(self.identification_number) == 10:
-            self.identification_number = f"{self.identification_number[:2]}.{self.identification_number[2:5]}.{self.identification_number[5:8]}-{self.identification_number[8:]}"
+            self.identification_number = f"{self.identification_number[:2]}.{self.identification_number[2:5]}.{
+                self.identification_number[5:8]}-{self.identification_number[8:]}"
 
         super().save(*args, **kwargs)
-

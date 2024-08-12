@@ -133,13 +133,11 @@ class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
                     "interval_quantity", "days_for_interval", "get_quantity_groups", "get_quantity_users")
 
     def total_duration(self, obj):
-        """Calculate the total duration in months, weeks, and days"""
+        """Calculate the total duration in days"""
         duration = obj.end_date - obj.start_date
         total_days = duration.days
-        total_weeks = total_days // 7
-        total_months = total_days // 30
-        remaining_days = total_days % 30
-        return f"{total_months} Meses, {total_weeks} semanas y {remaining_days} días"
+        return f"{total_days} días"
+
     total_duration.short_description = 'Duración total'
 
     def get_quantity_groups(self, obj):

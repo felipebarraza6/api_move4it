@@ -38,18 +38,27 @@ def create_intervals(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=Interval)
 def create_assignments(sender, instance, created, **kwargs):
-    if instance.generate_assignments:
-        # Desconectar temporalmente la señal para evitar recursión
-        post_save.disconnect(create_assignments, sender=Interval)
-        try:
-            # Obtener las actividades de la competencia
-            activities = instance.activities.all()
-            # Asignar las actividades al intervalo
-            # Obtener los usuarios de la competencia
-            users = User.objects.filter(
-                group_participation__enterprise=instance.competence.enterprise)
+    # Desconectar temporalmente la señal para evitar recursión
+    post_save.disconnect(create_assignments, sender=Interval)
 
-            # Recorrer cada usuario y generar las RegisterActivity correspondientes
+    try:
+        # Obtener las actividades de la competencia
+        activities = instance.activities.all()
+        # Asignar las actividades al intervalo
+        # Obtener los usuarios de la competencia
+        users = User.objects.filter(
+            group_participation__enterprise=instance.competence.enterprise)
+        competence = instance.competence
+        if created:
+            Competence.objects.filter(id=competence.id).update(
+                interval_quantity=competence.interval_quantity+1, end_date=competence.end_date + timedelta(days=competence.days_for_interval))
+            instance.start_date = Interval.objects.filter(
+                competence=competence.id).order_by('end_date').last().end_date
+            instance.end_date = instance.start_date + \
+                timedelta(days=competence.days_for_interval)
+            instance.save()
+
+        if instance.generate_assignments:
             for user in users:
                 for activity in activities:
                     register_activity = RegisterActivity.objects.create(
@@ -60,6 +69,6 @@ def create_assignments(sender, instance, created, **kwargs):
                     register_activity.users.set([user])
             instance.generate_assignments = False
             instance.save()
-        finally:
-            # Volver a conectar la señal
-            post_save.connect(create_assignments, sender=Interval)
+    finally:
+        # Volver a conectar la señal
+        post_save.connect(create_assignments, sender=Interval)

@@ -1,9 +1,11 @@
+"""
+Este módulo contiene las señales para la creación de intervalos y asignaciones
+relacionadas con el modelo Competence.
+"""
+from datetime import timedelta
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-from django.db import transaction
-from datetime import timedelta
-# Asegúrate de importar tus modelos
-from api.move4it.models import Competence, Interval, RegisterActivity
+from api.move4it.models import Competence, RegisterActivity, Interval
 from api.users.models import User
 
 
@@ -19,7 +21,7 @@ def create_intervals(sender, instance, created, **kwargs):
             # Calcular la fecha de fin de cada intervalo
             intervals = []
             for _ in range(quantity_intervals):
-                end_date = start_date + timedelta(days=days_for_interval)
+                end_date = start_date + timedelta(days=days_for_interval-1)
                 interval = Interval(competence=instance,
                                     start_date=start_date, end_date=end_date)
                 intervals.append(interval)
@@ -27,8 +29,10 @@ def create_intervals(sender, instance, created, **kwargs):
 
             # Guardar los intervalos en la base de datos
             Interval.objects.bulk_create(intervals)
-            # Asignar la fecha final del último intervalo como instance.end_date
-            instance.end_date = intervals[-1].end_date
+
+            # Actualizar la fecha final de la competencia
+            instance.end_date = intervals[-1].end_date + timedelta(days=1)
+
             # Guardar la instancia si se ha modificado
             instance.save()
         finally:

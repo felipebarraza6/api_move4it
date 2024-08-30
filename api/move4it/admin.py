@@ -6,6 +6,11 @@ from datetime import date
 from api.move4it.models import (Blog, Enterprise, Group, Activity,
                                 ActivityCategory, TypeMedition, RegisterActivity, Competence,
                                 FileRegisterActivity, Interval)
+from django.conf.locale.es import formats as es_formats
+
+es_formats.DATE_FORMAT = "d/m/Y"
+es_formats.DATETIME_FORMAT = "d/m/Y H:i"
+
 admin.site.register(Blog)
 
 
@@ -129,7 +134,7 @@ class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(Competence)
 class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('name',  "enterprise", "is_finished", "start_date", "total_duration", "get_actual_invertal",
+    list_display = ('name',  "enterprise", "is_finished", "start_date", 'end_date', "total_duration", "get_actual_invertal",
                     "interval_quantity", "days_for_interval", "get_quantity_groups", "get_quantity_users")
 
     def total_duration(self, obj):

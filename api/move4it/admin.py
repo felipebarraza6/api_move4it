@@ -2,7 +2,7 @@
 from import_export.admin import ExportActionMixin
 from django.contrib import admin
 from django.utils.html import format_html
-from datetime import date
+from datetime import date, timedelta
 from api.move4it.models import (Blog, Enterprise, Group, Activity,
                                 ActivityCategory, TypeMedition, RegisterActivity, Competence,
                                 FileRegisterActivity, Interval)
@@ -16,11 +16,22 @@ admin.site.register(Blog)
 
 @admin.register(Interval)
 class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('id', "competence", 'get_enterprise', "is_finished", 'start_date',
+    list_display = ('id', "competence", 'get_enterprise', "set_status", 'start_date',
                     'end_date', 'get_activities_count')
     search_fields = ('name', )
     list_filter = ('created', )
     date_hierarchy = 'created'
+
+    def set_status(self, obj):
+        """set status"""
+        today = date.today()
+        if obj.end_date < today:
+            return "Finalizado"
+        elif obj.start_date <= today and obj.end_date >= today:
+            return "Activo"
+        else:
+            return "Pendiente"
+    set_status.short_description = 'Estado'
 
     def get_enterprise(self, obj):
         """get enterprise"""
@@ -109,11 +120,22 @@ class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(RegisterActivity)
 class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('activity', "get_users", "get_enterprises", "get_groups", "start_date_time", "finish_date_time",
+    list_display = ('activity', "get_users", "get_enterprises", "get_groups", 'set_status', "start_date_time", "finish_date_time",
                     "is_completed", "is_load")
     list_filter = ('activity', 'users', 'groups', 'enterprises', 'activity',)
     search_fields = ('activity', )
     date_hierarchy = 'created'
+
+    def set_status(self, obj):
+        """set status"""
+        today = date.today()
+        if obj.finish_date_time.date() < today:
+            return "Finalizado"
+        elif obj.start_date_time.date() <= today and obj.finish_date_time.date() >= today:
+            return "Activo"
+        else:
+            return "Pendiente"
+    set_status.short_description = 'Estado'
 
     def get_users(self, obj):
         """get users"""
@@ -134,12 +156,23 @@ class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(Competence)
 class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('name',  "enterprise", "is_finished", "start_date", 'end_date', "total_duration", "get_actual_invertal",
+    list_display = ('name',  "enterprise", "set_status", "start_date", 'end_date', "total_duration", "get_actual_invertal",
                     "interval_quantity", "days_for_interval", "get_quantity_groups", "get_quantity_users")
+
+    def set_status(self, obj):
+        """set status"""
+        today = date.today()
+        if obj.end_date < today:
+            return "Finalizado"
+        elif obj.start_date <= today and obj.end_date >= today:
+            return "Activo"
+        else:
+            return "Pendiente"
+    set_status.short_description = 'Estado'
 
     def total_duration(self, obj):
         """Calculate the total duration in days"""
-        duration = obj.end_date - obj.start_date
+        duration = (obj.end_date - obj.start_date) + timedelta(days=1)
         total_days = duration.days
         return f"{total_days} días"
 

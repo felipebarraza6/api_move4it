@@ -2,8 +2,8 @@
 Este módulo contiene las señales para la creación de intervalos y asignaciones
 relacionadas con el modelo Competence.
 """
-from datetime import timedelta
-from django.db.models.signals import post_save
+from datetime import timedelta, datetime, time
+from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from api.move4it.models import Competence, RegisterActivity, Interval
 from api.users.models import User
@@ -31,7 +31,7 @@ def create_intervals(sender, instance, created, **kwargs):
             Interval.objects.bulk_create(intervals)
 
             # Actualizar la fecha final de la competencia
-            instance.end_date = intervals[-1].end_date + timedelta(days=1)
+            instance.end_date = intervals[-1].end_date
 
             # Guardar la instancia si se ha modificado
             instance.save()
@@ -55,11 +55,24 @@ def create_assignments(sender, instance, created, **kwargs):
         competence = instance.competence
         if created:
             Competence.objects.filter(id=competence.id).update(
-                interval_quantity=competence.interval_quantity+1, end_date=competence.end_date + timedelta(days=competence.days_for_interval))
+                interval_quantity=competence.interval_quantity+1, end_date=competence.end_date + timedelta(days=competence.days_for_interval - 1))
             instance.start_date = Interval.objects.filter(
                 competence=competence.id).order_by('end_date').last().end_date
             instance.end_date = instance.start_date + \
-                timedelta(days=competence.days_for_interval)
+                timedelta(days=competence.days_for_interval-1)
+
+            if instance.generate_assignments:
+                for user in users:
+                    for activity in activities:
+                        register_activity = RegisterActivity.objects.create(
+                            activity=activity,
+                            start_date_time=instance.start_date,
+                            finish_date_time=datetime.combine(
+                                instance.end_date, time(23, 59, 59))
+                        )
+                        register_activity.users.set([user])
+                instance.generate_assignments = False
+
             instance.save()
 
         if instance.generate_assignments:
@@ -68,7 +81,8 @@ def create_assignments(sender, instance, created, **kwargs):
                     register_activity = RegisterActivity.objects.create(
                         activity=activity,
                         start_date_time=instance.start_date,
-                        finish_date_time=instance.end_date
+                        finish_date_time=datetime.combine(
+                            instance.end_date, time(23, 59, 59))
                     )
                     register_activity.users.set([user])
             instance.generate_assignments = False

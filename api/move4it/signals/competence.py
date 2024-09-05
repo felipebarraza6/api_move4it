@@ -40,6 +40,19 @@ def create_intervals(sender, instance, created, **kwargs):
             post_save.connect(create_intervals, sender=Competence)
 
 
+@receiver(post_delete, sender=Interval)
+def delete_interval(sender, instance, **kwargs):
+    # Desconectar temporalmente la señal para evitar recursión
+    post_delete.disconnect(delete_interval, sender=Interval)
+    try:
+        competence = instance.competence
+        Competence.objects.filter(id=competence.id).update(
+            interval_quantity=competence.interval_quantity-1, end_date=competence.end_date - timedelta(days=competence.days_for_interval))
+    finally:
+        # Volver a conectar la señal
+        post_delete.connect(delete_interval, sender=Interval)
+
+
 @receiver(post_save, sender=Interval)
 def create_assignments(sender, instance, created, **kwargs):
     # Desconectar temporalmente la señal para evitar recursión
@@ -55,9 +68,9 @@ def create_assignments(sender, instance, created, **kwargs):
         competence = instance.competence
         if created:
             Competence.objects.filter(id=competence.id).update(
-                interval_quantity=competence.interval_quantity+1, end_date=competence.end_date + timedelta(days=competence.days_for_interval - 1))
+                interval_quantity=competence.interval_quantity+1, end_date=competence.end_date + timedelta(days=competence.days_for_interval))
             instance.start_date = Interval.objects.filter(
-                competence=competence.id).order_by('end_date').last().end_date
+                competence=competence.id).order_by('end_date').last().end_date + timedelta(days=1)
             instance.end_date = instance.start_date + \
                 timedelta(days=competence.days_for_interval-1)
 

@@ -16,10 +16,10 @@ admin.site.register(Blog)
 
 @admin.register(Interval)
 class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
-    list_display = ('id', "competence", 'get_enterprise', "set_status", 'start_date',
+    list_display = ('id', 'competence', 'get_enterprise', "set_status", 'start_date',
                     'end_date', 'get_activities_count')
     search_fields = ('name', )
-    list_filter = ('created', )
+    list_filter = ('competence', 'start_date', 'end_date')
     date_hierarchy = 'created'
 
     def set_status(self, obj):
@@ -122,7 +122,9 @@ class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
     list_display = ('activity', "get_users", "get_enterprises", "get_groups", 'set_status', "start_date_time", "finish_date_time",
                     "is_completed", "is_load")
-    list_filter = ('activity', 'users', 'groups', 'enterprises', 'activity',)
+
+    list_filter = ('interval__competence__name', 'activity', 'users', 'interval',
+                   'start_date_time', 'finish_date_time')
     search_fields = ('activity', )
     date_hierarchy = 'created'
 
@@ -203,5 +205,5 @@ class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
     get_actual_invertal.short_description = 'Intervalo Actual'
 
     search_fields = ('name', )
-    list_filter = ('created', )
+    list_filter = ('enterprise', 'start_date', 'end_date')
     date_hierarchy = 'created'

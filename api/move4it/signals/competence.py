@@ -94,6 +94,7 @@ def create_assignments(sender, instance, created, **kwargs):
                     register_activity = RegisterActivity.objects.create(
                         activity=activity,
                         start_date_time=instance.start_date,
+                        interval=instance,
                         finish_date_time=datetime.combine(
                             instance.end_date, time(23, 59, 59))
                     )

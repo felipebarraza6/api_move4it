@@ -94,4 +94,4 @@ class Interval(ModelApi):
         verbose_name_plural = 'Intervalos'
 
     def __str__(self):
-        return str(self.competence.name)
+        return str(("C: {} / F.I:{}").format(self.competence, self.start_date, self.end_date))

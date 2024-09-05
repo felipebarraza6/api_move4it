@@ -2,13 +2,15 @@
 from django.db import models
 from api.utils.models import ModelApi
 from .activities import Activity
-from .enterprises import Enterprise, Group
+from .enterprises import Enterprise, Group, Interval
 
 
 class RegisterActivity(ModelApi):
     """Register activity model."""
     activity = models.ForeignKey(
         Activity, on_delete=models.CASCADE, verbose_name='actividad')
+    interval = models.ForeignKey(
+        Interval, on_delete=models.CASCADE, verbose_name='intervalo', blank=True, null=True)
     users = models.ManyToManyField(
         'users.User', verbose_name='usuario', blank=True, related_name='users')
     enterprises = models.ManyToManyField(

@@ -10,19 +10,19 @@ from rest_framework.permissions import (
 
 
 # Models
-from api.users.models import Profile, SportActivity, PreviousIllnesse# Serializers
-from api.users.serializers import ProfileModelSerializer, SportActivityModelSerializer, PreviousIllnesseModelSerializer 
+from api.users.models import Profile, SportActivity, PreviousIllnesse  # Serializers
+from api.users.serializers import ProfileModelSerializer, SportActivityModelSerializer, PreviousIllnesseModelSerializer
 
 
 class ProfileViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                     mixins.UpdateModelMixin,
+                     mixins.ListModelMixin,
+                     mixins.DestroyModelMixin,
+                     viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
-        permissions = [IsAuthenticated]
+        permissions = [AllowAny]
         return [p() for p in permissions]
 
     def get_serializer_class(self):
@@ -49,11 +49,12 @@ class ProfileViewSet(mixins.RetrieveModelMixin,
     queryset = Profile.objects.all()
     lookup_field = 'id'
 
+
 class SportActivityViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                           mixins.UpdateModelMixin,
+                           mixins.ListModelMixin,
+                           mixins.DestroyModelMixin,
+                           viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -73,11 +74,12 @@ class SportActivityViewSet(mixins.RetrieveModelMixin,
     queryset = SportActivity.objects.all()
     lookup_field = 'id'
 
+
 class PreviousIllnesseViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                              mixins.UpdateModelMixin,
+                              mixins.ListModelMixin,
+                              mixins.DestroyModelMixin,
+                              viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -96,5 +98,3 @@ class PreviousIllnesseViewSet(mixins.RetrieveModelMixin,
     filterset_class = FilterPreviousIllnesse
     queryset = PreviousIllnesse.objects.all()
     lookup_field = 'id'
-
-

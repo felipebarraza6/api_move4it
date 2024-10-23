@@ -10,7 +10,6 @@ from rest_framework import generics
 
 # Filters
 from django_filters import rest_framework as filters
-
 # Permissions
 from rest_framework.permissions import (
     AllowAny,
@@ -35,9 +34,9 @@ class UserViewSet(mixins.RetrieveModelMixin,
         if self.action in ['login', 'signup']:
             permissions = [AllowAny]
         elif self.action in ['retrieve']:
-            permissions = [IsAuthenticated]
+            permissions = [AllowAny]
         else:
-            permissions = [IsAuthenticated]
+            permissions = [AllowAny]
         return [p() for p in permissions]
 
     def get_serializer_class(self):

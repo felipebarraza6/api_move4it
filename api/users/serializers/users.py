@@ -10,8 +10,8 @@ from django.core.validators import RegexValidator
 # Models
 from api.users.models import User, Profile, CorporalMeditions, SportActivity, PreviousIllnesse
 from api.move4it.models import Enterprise, Group, ActivityCategory, TypeMedition, RegisterActivity, Competence, Enterprise, FileRegisterActivity
-from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer 
-from .profiles import  SportActivityModelSerializer, PreviousIllnesseModelSerializer
+from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer
+from .profiles import SportActivityModelSerializer, PreviousIllnesseModelSerializer
 
 
 class CorporalMeditionsModelSerializer(serializers.ModelSerializer):
@@ -19,8 +19,10 @@ class CorporalMeditionsModelSerializer(serializers.ModelSerializer):
         model = CorporalMeditions
         fields = '__all__'
 
+
 class RegisterActivitySerializer(serializers.ModelSerializer):
     activity = ActivitySerializer()
+
     class Meta:
         model = RegisterActivity
         fields = '__all__'
@@ -33,37 +35,46 @@ class TypeMeditionSerializer(serializers.ModelSerializer):
 
 
 class ProfileModelSerializer(serializers.ModelSerializer):
-    corporal_meditions = serializers.SerializerMethodField('get_corporal_meditions')
+    corporal_meditions = serializers.SerializerMethodField(
+        'get_corporal_meditions')
     groups = serializers.SerializerMethodField('get_groups')
-    total_activities_group = serializers.SerializerMethodField('get_activities_group')
-    total_activities_group_completed = serializers.SerializerMethodField('get_activities_group_completed')
-    total_activities_user = serializers.SerializerMethodField('get_activities_user')
+    total_activities_group = serializers.SerializerMethodField(
+        'get_activities_group')
+    total_activities_group_completed = serializers.SerializerMethodField(
+        'get_activities_group_completed')
+    total_activities_user = serializers.SerializerMethodField(
+        'get_activities_user')
     type_meditions = serializers.SerializerMethodField('get_type_meditions')
-    challengers_user = serializers.SerializerMethodField('get_challengers_user')
+    challengers_user = serializers.SerializerMethodField(
+        'get_challengers_user')
 
     def get_challengers_user(self, profile):
-        groups = RegisterActivity.objects.filter(users=profile.user.id, activity__is_challenge=True)
+        groups = RegisterActivity.objects.filter(
+            users=profile.user.id, activity__is_challenge=True)
         return RegisterActivitySerializer(groups, many=True).data
-
 
     def get_type_meditions(self, profile):
         groups = TypeMedition.objects.all()
         return TypeMeditionSerializer(groups, many=True).data
 
     def get_activities_user(self, profile):
-        groups = RegisterActivity.objects.filter(users=profile.user.id, is_user=True)
+        groups = RegisterActivity.objects.filter(
+            users=profile.user.id, is_user=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_activities_group(self, profile):
-        groups = RegisterActivity.objects.filter(groups=profile.user.group_participation.id, is_group=True)
+        groups = RegisterActivity.objects.filter(
+            groups=profile.user.group_participation.id, is_group=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_activities_group_completed(self, profile):
-        groups = RegisterActivity.objects.filter(groups=profile.user.group_participation.id, is_group=True, is_completed=True)
+        groups = RegisterActivity.objects.filter(
+            groups=profile.user.group_participation.id, is_group=True, is_completed=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_groups(self, profile):
-        groups = Group.objects.filter(enterprise=profile.user.group_participation.enterprise.id)
+        groups = Group.objects.filter(
+            enterprise=profile.user.group_participation.enterprise.id)
         return GroupSerializer(groups, many=True).data
 
     def get_corporal_meditions(self, profile):
@@ -80,6 +91,7 @@ class UserModelSerializer(serializers.ModelSerializer):
         model = User
         fields = '__all__'
 
+
 class GroupSerializer(serializers.ModelSerializer):
     enterprise = serializers.SerializerMethodField('get_enterprise')
 
@@ -92,25 +104,22 @@ class GroupSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-
-
 class UserResponseSerializer(serializers.ModelSerializer):
     team = serializers.SerializerMethodField('get_team')
     profile = serializers.SerializerMethodField('get_profile')
-    
+
     def get_profile(self, user):
         groups = Profile.objects.filter(user=user).first()
         return ProfileModelSerializer(groups, many=False).data
-    
+
     def get_team(self, user):
         groups = Group.objects.filter(user=user).first()
         return GroupSerializer(groups, many=False).data
 
-
-
     class Meta:
         model = User
         fields = "__all__"
+
 
 class ResetPasswordSerializer(serializers.Serializer):
     user = serializers.EmailField()

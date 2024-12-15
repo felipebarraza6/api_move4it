@@ -1,12 +1,13 @@
-
-from import_export.admin import ExportActionMixin
+"""Admin for move4it models."""
+from datetime import date, timedelta
+from django.conf.locale.es import formats as es_formats
 from django.contrib import admin
 from django.utils.html import format_html
-from datetime import date, timedelta
-from api.move4it.models import (Blog, Enterprise, Group, Activity,
-                                ActivityCategory, TypeMedition, RegisterActivity, Competence,
-                                FileRegisterActivity, Interval)
-from django.conf.locale.es import formats as es_formats
+from import_export.admin import ExportActionMixin
+
+from api.move4it.models import (Activity, ActivityCategory, Blog, Competence,
+                                Enterprise, FileRegisterActivity, Group,
+                                Interval, RegisterActivity, TypeMedition)
 
 es_formats.DATE_FORMAT = "d/m/Y"
 es_formats.DATETIME_FORMAT = "d/m/Y H:i"
@@ -16,6 +17,7 @@ admin.site.register(Blog)
 
 @admin.register(Interval)
 class IntervalAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Interval."""
     list_display = ('id', 'competence', 'get_enterprise', "set_status", 'start_date',
                     'end_date', 'get_activities_count')
     search_fields = ('name', )
@@ -70,13 +72,16 @@ class EnterpriseAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(Group)
 class GroupAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Group Admin."""
 
     list_filter = ('enterprise', )
 
     def get_equipment_count(self, obj):
+        """Count of team."""
         return obj.user_set.count()
 
     def get_leader_name(self, obj):
+        """Get leader field name."""
         leader = obj.user_set.filter(is_leader=True).first()
         if leader:
             return f"{leader.first_name} {leader.last_name} / {leader.email}"
@@ -91,6 +96,7 @@ class GroupAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(Activity)
 class ActivityAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Activity."""
     list_display = ('name', 'category', "type_medition",
                     'points', 'global_points', "is_global")
     search_fields = ('name', )
@@ -101,16 +107,19 @@ class ActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(ActivityCategory)
 class ActivityCategoryAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Category."""
     list_display = ('name', 'description')
 
 
 @admin.register(TypeMedition)
 class TypeMeditionAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Type Medition."""
     list_display = ('name', )
 
 
 @admin.register(FileRegisterActivity)
 class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
+    """File register activity."""
     list_display = ('register_activity', 'file', "user")
     search_fields = ('register_activity', )
     list_filter = ("user", )
@@ -120,6 +129,7 @@ class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(RegisterActivity)
 class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Register activity."""
     list_display = ('activity', "get_users", "get_enterprises", "get_groups", 'set_status', "start_date_time", "finish_date_time",
                     "is_completed", "is_load")
 
@@ -158,6 +168,7 @@ class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 
 @admin.register(Competence)
 class CompetenceAdmin(ExportActionMixin, admin.ModelAdmin):
+    """Competence."""
     list_display = ('name',  "enterprise", "set_status", "start_date", 'end_date', "total_duration", "get_actual_invertal",
                     "interval_quantity", "days_for_interval", "get_quantity_groups", "get_quantity_users")
 

@@ -5,13 +5,11 @@ from rest_framework.validators import UniqueValidator
 
 # Django
 from django.contrib.auth import password_validation, authenticate
-from django.core.validators import RegexValidator
 
 # Models
-from api.users.models import User, Profile, CorporalMeditions, SportActivity, PreviousIllnesse
-from api.move4it.models import Enterprise, Group, ActivityCategory, TypeMedition, RegisterActivity, Competence, Enterprise, FileRegisterActivity
+from api.users.models import User, Profile, CorporalMeditions
+from api.move4it.models import Enterprise, Group, TypeMedition, RegisterActivity
 from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer
-from .profiles import SportActivityModelSerializer, PreviousIllnesseModelSerializer
 
 
 class CorporalMeditionsModelSerializer(serializers.ModelSerializer):

@@ -42,6 +42,8 @@ class ProfileModelSerializer(serializers.ModelSerializer):
         'get_activities_group_completed')
     total_activities_user = serializers.SerializerMethodField(
         'get_activities_user')
+    total_activities_user_completed = serializers.SerializerMethodField(
+        'get_activities_user_completed')
     type_meditions = serializers.SerializerMethodField('get_type_meditions')
     challengers_user = serializers.SerializerMethodField(
         'get_challengers_user')
@@ -57,7 +59,12 @@ class ProfileModelSerializer(serializers.ModelSerializer):
 
     def get_activities_user(self, profile):
         groups = RegisterActivity.objects.filter(
-            users=profile.user.id, is_user=True)
+            users=profile.user.id)
+        return RegisterActivitySerializer(groups, many=True).data
+
+    def get_activities_user_completed(self, profile):
+        groups = RegisterActivity.objects.filter(
+            users=profile.user.id, is_completed=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_activities_group(self, profile):
@@ -76,7 +83,8 @@ class ProfileModelSerializer(serializers.ModelSerializer):
         return GroupSerializer(groups, many=True).data
 
     def get_corporal_meditions(self, profile):
-        groups = CorporalMeditions.objects.filter(profile=profile)
+        groups = CorporalMeditions.objects.filter(
+            profile=profile.id)
         return CorporalMeditionsModelSerializer(groups, many=True).data
 
     class Meta:
@@ -92,6 +100,12 @@ class UserModelSerializer(serializers.ModelSerializer):
 
 class GroupSerializer(serializers.ModelSerializer):
     enterprise = serializers.SerializerMethodField('get_enterprise')
+
+    participants = serializers.SerializerMethodField('get_participants')
+
+    def get_participants(self, group):
+        groups = User.objects.filter(group_participation=group).all()
+        return UserModelSerializer(groups, many=True).data
 
     def get_enterprise(self, group):
         groups = Enterprise.objects.filter(group=group).first()

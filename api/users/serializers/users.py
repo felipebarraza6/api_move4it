@@ -1,3 +1,4 @@
+"""User serializers."""
 # Django REST Framework
 from rest_framework import serializers
 from rest_framework.authtoken.models import Token
@@ -13,26 +14,33 @@ from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer
 
 
 class CorporalMeditionsModelSerializer(serializers.ModelSerializer):
+    """Corporal meditions."""
     class Meta:
+        """Meta class."""
         model = CorporalMeditions
         fields = '__all__'
 
 
 class RegisterActivitySerializer(serializers.ModelSerializer):
+    """Register Activity."""
     activity = ActivitySerializer()
 
     class Meta:
+        """Meta class."""
         model = RegisterActivity
         fields = '__all__'
 
 
 class TypeMeditionSerializer(serializers.ModelSerializer):
+    """Type Medition."""
     class Meta:
+        """Meta class."""
         model = TypeMedition
         fields = '__all__'
 
 
 class ProfileModelSerializer(serializers.ModelSerializer):
+    """Profile model serializer."""
     corporal_meditions = serializers.SerializerMethodField(
         'get_corporal_meditions')
     groups = serializers.SerializerMethodField('get_groups')
@@ -49,86 +57,104 @@ class ProfileModelSerializer(serializers.ModelSerializer):
         'get_challengers_user')
 
     def get_challengers_user(self, profile):
+        """get challengers user."""
         groups = RegisterActivity.objects.filter(
             users=profile.user.id, activity__is_challenge=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_type_meditions(self, profile):
+        """get type meditions."""
         groups = TypeMedition.objects.all()
         return TypeMeditionSerializer(groups, many=True).data
 
     def get_activities_user(self, profile):
+        """get activities user."""
         groups = RegisterActivity.objects.filter(
             users=profile.user.id)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_activities_user_completed(self, profile):
+        """get activities user completed."""
         groups = RegisterActivity.objects.filter(
             users=profile.user.id, is_completed=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_activities_group(self, profile):
+        """get activities group."""
         groups = RegisterActivity.objects.filter(
             groups=profile.user.group_participation.id, is_group=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_activities_group_completed(self, profile):
+        """get activities group completed."""
         groups = RegisterActivity.objects.filter(
             groups=profile.user.group_participation.id, is_group=True, is_completed=True)
         return RegisterActivitySerializer(groups, many=True).data
 
     def get_groups(self, profile):
+        """get groups."""
         groups = Group.objects.filter(
             enterprise=profile.user.group_participation.enterprise.id)
         return GroupSerializer(groups, many=True).data
 
     def get_corporal_meditions(self, profile):
+        """get corporal meditions."""
         groups = CorporalMeditions.objects.filter(
             profile=profile.id)
         return CorporalMeditionsModelSerializer(groups, many=True).data
 
     class Meta:
+        """Meta class."""
         model = Profile
         fields = '__all__'
 
 
 class UserModelSerializer(serializers.ModelSerializer):
     class Meta:
+        """Meta class."""
         model = User
         fields = '__all__'
 
 
 class GroupSerializer(serializers.ModelSerializer):
+    """Group model serializer."""
     enterprise = serializers.SerializerMethodField('get_enterprise')
 
     participants = serializers.SerializerMethodField('get_participants')
 
     def get_participants(self, group):
+        """get participants."""
         groups = User.objects.filter(group_participation=group).all()
         return UserModelSerializer(groups, many=True).data
 
     def get_enterprise(self, group):
+        """get enterprise."""
         groups = Enterprise.objects.filter(group=group).first()
         return EnterpriseSerializer(groups, many=False).data
 
     class Meta:
+        """Meta class."""
         model = Group
         fields = '__all__'
 
 
 class UserResponseSerializer(serializers.ModelSerializer):
+    """User model serializer."""
     team = serializers.SerializerMethodField('get_team')
     profile = serializers.SerializerMethodField('get_profile')
 
     def get_profile(self, user):
+        """get profile."""
         groups = Profile.objects.filter(user=user).first()
         return ProfileModelSerializer(groups, many=False).data
 
     def get_team(self, user):
+        """get team."""
         groups = Group.objects.filter(user=user).first()
         return GroupSerializer(groups, many=False).data
 
     class Meta:
+        """Meta class."""
         model = User
         fields = "__all__"
 

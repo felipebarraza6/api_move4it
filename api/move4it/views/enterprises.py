@@ -15,7 +15,7 @@ from rest_framework.permissions import (
 
 
 # Models
-from api.move4it.models import Competence, Enterprise, Group 
+from api.move4it.models import Competence, Enterprise, Group
 from api.move4it.serializers import CompetenceSerializer, EnterpriseSerializer, GroupSerializerList, GroupSerializer
 
 
@@ -27,7 +27,7 @@ class CompetenceViewSet(mixins.RetrieveModelMixin,
 
     def get_permissions(self):
         """Assign permissions based on action."""
-        permissions = [IsAuthenticated]
+        permissions = [AllowAny]
         return [p() for p in permissions]
 
     filter_backends = (filters.DjangoFilterBackend,)

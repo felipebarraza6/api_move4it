@@ -10,7 +10,7 @@ from django.contrib.auth import password_validation, authenticate
 # Models
 from api.users.models import User, Profile, CorporalMeditions
 from api.move4it.models import Enterprise, Group, TypeMedition, RegisterActivity
-from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer
+from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer, ActivitySerializerForm
 
 
 class CorporalMeditionsModelSerializer(serializers.ModelSerializer):
@@ -23,12 +23,12 @@ class CorporalMeditionsModelSerializer(serializers.ModelSerializer):
 
 class RegisterActivitySerializer(serializers.ModelSerializer):
     """Register Activity."""
-    activity = ActivitySerializer()
 
     class Meta:
         """Meta class."""
         model = RegisterActivity
         fields = '__all__'
+        depth=2
 
 
 class TypeMeditionSerializer(serializers.ModelSerializer):

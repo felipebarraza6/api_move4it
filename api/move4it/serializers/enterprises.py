@@ -1,8 +1,20 @@
 from rest_framework import serializers
-from api.move4it.models import Enterprise, Group, Competence 
+from api.move4it.models import Enterprise, Group, Competence, Interval, activities
 
+
+class IntervalSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Interval
+        fields = ('start_date', 'end_date', 'competence', 'activities')
 
 class CompetenceSerializer(serializers.ModelSerializer):
+
+    intervals = serializers.SerializerMethodField('get_intervals')
+
+    def get_intervals(self, competence):
+        intervals = Interval.objects.filter(competence=competence).all()
+        serialized_intervals = IntervalSerializer(intervals, many=True).data
+        return serialized_intervals
     class Meta:
         model = Competence
         fields = '__all__'

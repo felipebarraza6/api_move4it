@@ -1,11 +1,23 @@
+from django.db.models.base import Model
 from rest_framework import serializers
-from api.move4it.models import Enterprise, Group, Competence, Interval, activities
+from api.move4it.models import Enterprise, Group, Competence, Interval, RegisterActivity
 
+class RegisterActivitySerializer(serializers.Serializer):
+    class Meta:
+        model = RegisterActivity
+        fields =('__all__')
 
 class IntervalSerializer(serializers.ModelSerializer):
+    activities = serializers.SerializerMethodField('get_activities')
+    
+    def get_activities(self, interval):
+        activity = RegisterActivity.objects.filter(interval=interval.id).all()
+        serialized_activities = RegisterActivitySerializer(activity, many=True).data
+        return serialized_activities
+
     class Meta:
         model = Interval
-        fields = ('start_date', 'end_date', 'competence', 'activities')
+        fields = ('start_date', 'end_date', 'activities')
 
 class CompetenceSerializer(serializers.ModelSerializer):
 
@@ -15,6 +27,8 @@ class CompetenceSerializer(serializers.ModelSerializer):
         intervals = Interval.objects.filter(competence=competence).all()
         serialized_intervals = IntervalSerializer(intervals, many=True).data
         return serialized_intervals
+
+
     class Meta:
         model = Competence
         fields = '__all__'

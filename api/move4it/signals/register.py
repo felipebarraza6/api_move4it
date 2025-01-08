@@ -12,7 +12,6 @@ def update_user(sender, instance, created, **kwargs):
         post_save.disconnect(update_user, sender=RegisterActivity)
 
         try:
-            instance.is_active = False
             if instance.is_user and instance.is_completed:
                 for user in instance.users.all():
                     User.objects.filter(id=user.id).update(

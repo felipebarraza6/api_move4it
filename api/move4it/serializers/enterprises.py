@@ -7,7 +7,9 @@ from api.users.models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_active',)
+        fields = ('id', 'username', 'first_name', 'last_name', 'email', 'is_active', 'group_participation')
+        depth = 2
+        
 class FileRegisterActivitySerializer(serializers.ModelSerializer):
     class Meta:
         model = FileRegisterActivity
@@ -23,11 +25,52 @@ class RegisterActivitySerializer(serializers.ModelSerializer):
         return serialized_files
     class Meta:
         model = RegisterActivity
-        fields = ('id', 'start_date_time', 'finish_date_time', 'location', 'value', 'is_active','is_load','is_completed', 'observation', 'location', 'files','users')
+        fields = ('id', 'start_date_time', 'finish_date_time', 'activity','location', 'value', 'is_active','is_load','is_completed', 'observation', 'location', 'files','users')
         depth = 3
 
 class IntervalSerializer(serializers.ModelSerializer):
     assignations = serializers.SerializerMethodField('get_activities')
+    assignations_team = serializers.SerializerMethodField('get_activities_team')
+    quantity_participants = serializers.SerializerMethodField('get_quantity_participants')
+    total_points = serializers.SerializerMethodField('get_total_points')
+    total_points_completed = serializers.SerializerMethodField('get_total_points_completed')
+    
+    def get_activities_team(self, interval):
+        activities = RegisterActivity.objects.filter(interval=interval, is_active=True).all()
+        serialized_activities = RegisterActivitySerializer(activities, many=True).data
+        return serialized_activities
+    
+    
+    
+    def get_total_points_completed(self, interval):
+        activities = RegisterActivity.objects.filter(interval=interval, is_active=True, is_completed=True).all()
+        total_points = 0
+        divide = 1
+        for activity in activities:
+            total_points += activity.activity.points
+        
+        if len(activities) > 1:
+            divide = len(activities)
+            
+        return int(total_points / divide)
+    
+    def get_total_points(self, interval):
+        activities = RegisterActivity.objects.filter(interval=interval, is_active=True).all()
+        total_points = 0
+        divide = 1
+        for activity in activities:
+            total_points += activity.activity.points
+        if len(activities) > 1:
+            divide = len(activities)
+        
+        return int(total_points / divide)
+    
+    def get_quantity_participants(self, interval):
+        activities = RegisterActivity.objects.filter(interval=interval, is_active=True).all()
+        quantity_participants = 0
+        for activity in activities:
+            quantity_participants += len(activity.users.all())
+        return quantity_participants
     
     def get_activities(self, interval):
         activities = RegisterActivity.objects.filter(interval=interval).all()
@@ -36,7 +79,7 @@ class IntervalSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Interval
-        fields = ('start_date', 'end_date', 'assignations')
+        fields = ('start_date', 'end_date', 'quantity_participants','total_points','total_points_completed',"assignations_team",'assignations')
         depth = 3
 
 class CompetenceSerializer(serializers.ModelSerializer):

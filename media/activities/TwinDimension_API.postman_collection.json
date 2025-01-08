@@ -1,0 +1,396 @@
+{
+	"info": {
+		"_postman_id": "fad18d99-63b8-466d-9f40-c766378e864a",
+		"name": "TwinDimension API [Model]",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "11336044"
+	},
+	"item": [
+		{
+			"name": "Login",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"username\": \"YOUR-USER-HERE\",\r\n  \"password\": \"YOUR-PASSWORD-HERE\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/login",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Token",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n  \"refreshToken\": \"YOUR-REFRESH-TOKEN-HERE\"\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/token",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Devices",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "Bearer YOUR-TOKEN-HERE",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/devices?pageSize=25&page=0",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"devices"
+					],
+					"query": [
+						{
+							"key": "pageSize",
+							"value": "25"
+						},
+						{
+							"key": "page",
+							"value": "0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Assets",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "Bearer YOUR-TOKEN-HERE",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/assets?pageSize=25&page=0",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"assets"
+					],
+					"query": [
+						{
+							"key": "pageSize",
+							"value": "25"
+						},
+						{
+							"key": "page",
+							"value": "0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Telemetry",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "Bearer YOUR-TOKEN-HERE",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/telemetry/DEVICE/YOUR-DEVICE-ID/values/timeseries?startTs=1721000000000&endTs=1727000000000&keys=Distance,Latitude,Longitude",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"telemetry",
+						"DEVICE",
+						"YOUR-DEVICE-ID",
+						"values",
+						"timeseries"
+					],
+					"query": [
+						{
+							"key": "startTs",
+							"value": "1721000000000"
+						},
+						{
+							"key": "endTs",
+							"value": "1727000000000"
+						},
+						{
+							"key": "keys",
+							"value": "Distance,Latitude,Longitude"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Last Telemetry",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "Bearer YOUR-TOKEN-HERE",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/telemetry/DEVICE/YOUR-DEVICE-ID/values/timeseries?keys=CumulativeOperatingHours,Distance,Latitude,Longitude",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"telemetry",
+						"DEVICE",
+						"YOUR-DEVICE-ID",
+						"values",
+						"timeseries"
+					],
+					"query": [
+						{
+							"key": "keys",
+							"value": "CumulativeOperatingHours,Distance,Latitude,Longitude"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Last Attributes",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "X-Authorization",
+						"value": "Bearer YOUR-TOKEN-HERE",
+						"type": "text",
+						"disabled": true
+					}
+				],
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/telemetry/DEVICE/YOUR-DEVICE-ID/values/attributes",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"telemetry",
+						"DEVICE",
+						"YOUR-DEVICE-ID",
+						"values",
+						"attributes"
+					],
+					"query": [
+						{
+							"key": "keys",
+							"value": "DataOrigin,Credential",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Alarm",
+			"request": {
+				"auth": {
+					"type": "bearer",
+					"bearer": [
+						{
+							"key": "token",
+							"value": "{{TOKEN}}",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "https://api.twindimension.com/tdata/v1/alarm/YOUR-ENTITY-TYPE/YOUR-ENTITY-ID?pageSize=10&page=0",
+					"protocol": "https",
+					"host": [
+						"api",
+						"twindimension",
+						"com"
+					],
+					"path": [
+						"tdata",
+						"v1",
+						"alarm",
+						"YOUR-ENTITY-TYPE",
+						"YOUR-ENTITY-ID"
+					],
+					"query": [
+						{
+							"key": "pageSize",
+							"value": "10"
+						},
+						{
+							"key": "page",
+							"value": "0"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "TOKEN",
+			"value": "YOUR-TOKEN-HERE"
+		}
+	]
+}

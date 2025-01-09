@@ -43,6 +43,8 @@ class CompetenceViewSet(mixins.RetrieveModelMixin,
     queryset = Competence.objects.all()
     lookup_field = 'id'
 
+    
+
 
 class EnterpriseViewSet(mixins.RetrieveModelMixin,
                   mixins.UpdateModelMixin,

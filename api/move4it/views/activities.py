@@ -20,10 +20,10 @@ from api.move4it.serializers import ActivityCategorySerializer, ActivitySerializ
 
 
 class CategoryActivityViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                              mixins.UpdateModelMixin,
+                              mixins.ListModelMixin,
+                              mixins.DestroyModelMixin,
+                              viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -35,7 +35,7 @@ class CategoryActivityViewSet(mixins.RetrieveModelMixin,
 
     class FilterCategoryActivity (filters.FilterSet):
         class Meta:
-            model = ActivityCategory 
+            model = ActivityCategory
             fields = {
                 'name': ['exact'],
             }
@@ -45,10 +45,10 @@ class CategoryActivityViewSet(mixins.RetrieveModelMixin,
 
 
 class ActivityViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                      mixins.UpdateModelMixin,
+                      mixins.ListModelMixin,
+                      mixins.DestroyModelMixin,
+                      viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -65,7 +65,6 @@ class ActivityViewSet(mixins.RetrieveModelMixin,
                 'name': ['exact'],
                 'category': ['exact'],
                 'type_medition': ['exact'],
-                'is_global': ['exact'],
             }
     filterset_class = FilterActivity
     queryset = Activity.objects.all()
@@ -73,10 +72,10 @@ class ActivityViewSet(mixins.RetrieveModelMixin,
 
 
 class RegisterActivityViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                              mixins.UpdateModelMixin,
+                              mixins.ListModelMixin,
+                              mixins.DestroyModelMixin,
+                              viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -90,19 +89,18 @@ class RegisterActivityViewSet(mixins.RetrieveModelMixin,
         class Meta:
             model = RegisterActivity
             fields = {
-                "start_date_time": ['exact', 'gt', 'lt', 'gte', 'lte', "year", "month", "day", "week_day", "hour", "minute", "second", "date", "time", "isnull", "regex", "iregex"],
                 "activity": ['exact'],
-                "groups": ['exact'],
             }
     filterset_class = FilterRegisterActivity
     queryset = RegisterActivity.objects.all()
     lookup_field = 'id'
 
+
 class FileRegisterActivityViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                                  mixins.UpdateModelMixin,
+                                  mixins.ListModelMixin,
+                                  mixins.DestroyModelMixin,
+                                  viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""

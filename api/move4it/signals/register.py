@@ -12,20 +12,10 @@ def update_user(sender, instance, created, **kwargs):
         post_save.disconnect(update_user, sender=RegisterActivity)
 
         try:
-            if instance.is_user and instance.is_completed:
-                for user in instance.users.all():
-                    User.objects.filter(id=user.id).update(
-                        points=user.points + instance.activity.points)
+            if instance.is_completed:
 
-            if instance.is_group and instance.is_completed:
-                for group in instance.groups.all():
-                    Group.objects.filter(id=group.id).update(
-                        points=group.points + instance.activity.global_points)
-
-            if instance.is_global and instance.is_completed:
-                for enterprise in instance.enterprises.all():
-                    Enterprise.objects.filter(id=enterprise.id).update(
-                        points=enterprise.points + instance.activity.global_points)
+                User.objects.filter(id=instance.user.id).update(
+                    points=instance.user.points + instance.activity.points)
 
             # Guardar la instancia si se ha modificado
             instance.save()

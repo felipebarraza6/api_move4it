@@ -61,12 +61,8 @@ class Activity(ModelApi):
 
     description = models.TextField(
         max_length=1200, blank=True, null=True, verbose_name='descripción')
-    is_global = models.BooleanField(default=False, verbose_name='es global')
     points = models.IntegerField(default=0, verbose_name='puntos')
-    global_points = models.IntegerField(
-        default=0, verbose_name='puntos globales')
     duration = models.IntegerField(default=0, verbose_name='duración')
-    is_challenge = models.BooleanField(default=False, verbose_name='es reto')
     is_active = models.BooleanField(default=True, verbose_name='esta activo')
 
     CHOICES_STATS = (("INCREMENTAL", "incremental"),

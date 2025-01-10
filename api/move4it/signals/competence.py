@@ -79,12 +79,9 @@ def create_assignments(sender, instance, created, **kwargs):
                     for activity in activities:
                         register_activity = RegisterActivity.objects.create(
                             activity=activity,
-                            start_date_time=datetime.combine(
-                                instance.start_date, time(0, 0, 0)),
-                            finish_date_time=datetime.combine(
-                                instance.end_date, time(23, 59, 59))
+                            interval=instance,
+                            user=user
                         )
-                        register_activity.users.set([user])
                 instance.generate_assignments = False
 
             instance.save()
@@ -94,13 +91,9 @@ def create_assignments(sender, instance, created, **kwargs):
                 for activity in activities:
                     register_activity = RegisterActivity.objects.create(
                         activity=activity,
-                        start_date_time=datetime.combine(
-                            instance.start_date, time(0, 0, 0)),
                         interval=instance,
-                        finish_date_time=datetime.combine(
-                            instance.end_date, time(23, 59, 59))
+                        user=user
                     )
-                    register_activity.users.set([user])
             instance.generate_assignments = False
             instance.save()
     finally:

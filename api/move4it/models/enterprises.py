@@ -63,7 +63,6 @@ class Competence(ModelApi):
         default=0, verbose_name='intervalo')
     days_for_interval = models.IntegerField(
         default=0, verbose_name='Dias por intervalo')
-    is_finished = models.BooleanField(default=False, verbose_name='finalizado')
 
     class Meta:
         """Meta competence model."""

@@ -11,29 +11,20 @@ class RegisterActivity(ModelApi):
         Activity, on_delete=models.CASCADE, verbose_name='actividad')
     interval = models.ForeignKey(
         Interval, on_delete=models.CASCADE, verbose_name='intervalo', blank=True, null=True)
-    users = models.ManyToManyField(
-        'users.User', verbose_name='usuario', blank=True, related_name='users')
-    enterprises = models.ManyToManyField(
-        Enterprise, verbose_name='empresas', blank=True, related_name='enterprises')
-    groups = models.ManyToManyField(
-        Group, verbose_name='grupos', blank=True, related_name='groups')
+
+    user = models.ForeignKey(
+        'users.User', on_delete=models.CASCADE, verbose_name='usuario')
+
     duration = models.IntegerField(
         default=0, verbose_name='duración', blank=True, null=True)
-    start_date_time = models.DateTimeField(
-        verbose_name='fecha de inicio', blank=True, null=True)
-    finish_date_time = models.DateTimeField(
-        verbose_name='fecha de finalización', blank=True, null=True)
+
     observation = models.TextField(
         max_length=1200, blank=True, null=True, verbose_name='observación(administrador')
     location = models.CharField(
         max_length=1200, blank=True, null=True, verbose_name='ubicación(lat/long)')
     value = models.FloatField(verbose_name='valor', blank=True, null=True)
 
-    is_user = models.BooleanField(default=False, verbose_name='para usuario')
-    is_global = models.BooleanField(default=False, verbose_name='para empresa')
-    is_group = models.BooleanField(default=False, verbose_name='para grupo')
     is_active = models.BooleanField(default=True, verbose_name='esa activo')
-
     is_completed = models.BooleanField(
         default=False, verbose_name='esta completado')
     is_load = models.BooleanField(

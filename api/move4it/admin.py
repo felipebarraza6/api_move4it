@@ -98,10 +98,10 @@ class GroupAdmin(ExportActionMixin, admin.ModelAdmin):
 class ActivityAdmin(ExportActionMixin, admin.ModelAdmin):
     """Activity."""
     list_display = ('name', 'category', "type_medition",
-                    'points', 'global_points', "is_global")
+                    'points', )
     search_fields = ('name', )
     list_filter = ('category', 'type_medition',
-                   'is_global', "points", "global_points")
+                   "points", )
     date_hierarchy = 'created'
 
 
@@ -130,40 +130,29 @@ class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 @admin.register(RegisterActivity)
 class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
     """Register activity."""
-    list_display = ('activity', "get_users", "get_enterprises", "get_groups", 'set_status', "start_date_time", "finish_date_time",
-                    "is_completed", "is_load")
+    list_display = ('activity', "user", 'enterprise',
+                    'set_status', "is_completed", "is_load")
 
-    list_filter = ('interval__competence__name', 'activity', 'users', 'interval',
-                   'start_date_time', 'finish_date_time')
+    list_filter = ('interval__competence__name',
+                   'activity', 'user', 'interval',)
     search_fields = ('activity', )
     date_hierarchy = 'created'
+
+    def enterprise(self, obj):
+        """get enterprise"""
+        return obj.user.group_participation.enterprise.name
 
     def set_status(self, obj):
         """set status"""
         today = date.today()
-        if obj.finish_date_time.date() < today:
+        if obj.interval.end_date < today:
             return "Finalizado"
-        elif obj.start_date_time.date() <= today and obj.finish_date_time.date() >= today:
+        elif obj.interval.start_date <= today and obj.interval.end_date >= today:
             return "Activo"
         else:
             return "Pendiente"
     set_status.short_description = 'Estado'
-
-    def get_users(self, obj):
-        """get users"""
-        return format_html("<br>".join([p.email for p in obj.users.all()]))
-
-    def get_groups(self, obj):
-        """get groups"""
-        return format_html("<br>".join([p.group_participation.name for p in obj.users.all()]))
-
-    def get_enterprises(self, obj):
-        """get enterprises"""
-        return format_html("<br>".join([p.group_participation.enterprise.name for p in obj.users.all()]))
-
-    get_users.short_description = 'Usuario'  # Nombre del campo en el admin
-    get_groups.short_description = 'Grupo'
-    get_enterprises.short_description = 'Empresa'
+    enterprise.short_description = 'Empresa'
 
 
 @admin.register(Competence)

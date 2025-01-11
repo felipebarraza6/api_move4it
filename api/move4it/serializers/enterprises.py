@@ -72,7 +72,7 @@ class IntervalSerializer(serializers.ModelSerializer):
             if len(activities) > 1:
                 divide = len(activities)
 
-            return int(total_points / divide)
+            return activities.count()
 
         def get_quantity_participants(interval):
             activities = RegisterActivity.objects.filter(
@@ -87,7 +87,7 @@ class IntervalSerializer(serializers.ModelSerializer):
             return quantity_participants
 
         data_team = {
-            'total_points': get_total_points(interval),
+            'count': get_total_points(interval),
             'total_points_completed': get_total_points_completed(interval),
             'quantity_participants': get_quantity_participants(interval),
             'assignations': serialized_activities
@@ -142,10 +142,10 @@ class IntervalSerializer(serializers.ModelSerializer):
             if len(activities) > 1:
                 divide = len(activities)
 
-            return int(total_points / divide)
+            return activities.count()
 
         data = {
-            'total_points': get_total_points(interval),
+            'count': get_total_points(interval),
             'total_points_completed': get_total_points_completed(interval),
             'quantity_participants': get_quantity_participants(interval),
             'assignations': serialized_activities

@@ -28,7 +28,7 @@ class RegisterActivitySerializer(serializers.ModelSerializer):
         """Meta class."""
         model = RegisterActivity
         fields = '__all__'
-        depth=2
+        depth = 2
 
 
 class TypeMeditionSerializer(serializers.ModelSerializer):
@@ -43,64 +43,11 @@ class ProfileModelSerializer(serializers.ModelSerializer):
     """Profile model serializer."""
     corporal_meditions = serializers.SerializerMethodField(
         'get_corporal_meditions')
-    groups = serializers.SerializerMethodField('get_groups')
-    total_activities_group = serializers.SerializerMethodField(
-        'get_activities_group')
-    total_activities_group_completed = serializers.SerializerMethodField(
-        'get_activities_group_completed')
-    total_activities_user = serializers.SerializerMethodField(
-        'get_activities_user')
-    total_activities_user_completed = serializers.SerializerMethodField(
-        'get_activities_user_completed')
-    type_meditions = serializers.SerializerMethodField('get_type_meditions')
-    challengers_user = serializers.SerializerMethodField(
-        'get_challengers_user')
-
-    def get_challengers_user(self, profile):
-        """get challengers user."""
-        groups = RegisterActivity.objects.filter(
-            users=profile.user.id, activity__is_challenge=True)
-        return RegisterActivitySerializer(groups, many=True).data
-
-    def get_type_meditions(self, profile):
-        """get type meditions."""
-        groups = TypeMedition.objects.all()
-        return TypeMeditionSerializer(groups, many=True).data
-
-    def get_activities_user(self, profile):
-        """get activities user."""
-        groups = RegisterActivity.objects.filter(
-            users=profile.user.id)
-        return RegisterActivitySerializer(groups, many=True).data
-
-    def get_activities_user_completed(self, profile):
-        """get activities user completed."""
-        groups = RegisterActivity.objects.filter(
-            users=profile.user.id, is_completed=True)
-        return RegisterActivitySerializer(groups, many=True).data
-
-    def get_activities_group(self, profile):
-        """get activities group."""
-        groups = RegisterActivity.objects.filter(
-            groups=profile.user.group_participation.id, is_group=True)
-        return RegisterActivitySerializer(groups, many=True).data
-
-    def get_activities_group_completed(self, profile):
-        """get activities group completed."""
-        groups = RegisterActivity.objects.filter(
-            groups=profile.user.group_participation.id, is_group=True, is_completed=True)
-        return RegisterActivitySerializer(groups, many=True).data
-
-    def get_groups(self, profile):
-        """get groups."""
-        groups = Group.objects.filter(
-            enterprise=profile.user.group_participation.enterprise.id)
-        return GroupSerializer(groups, many=True).data
 
     def get_corporal_meditions(self, profile):
         """get corporal meditions."""
         groups = CorporalMeditions.objects.filter(
-            profile=profile.id)
+            profile=profile.id).order_by('-created').all()
         return CorporalMeditionsModelSerializer(groups, many=True).data
 
     class Meta:
@@ -124,8 +71,8 @@ class GroupSerializer(serializers.ModelSerializer):
 
     def get_participants(self, group):
         """get participants."""
-        groups = User.objects.filter(group_participation=group).all()
-        return UserModelSerializer(groups, many=True).data
+        users = User.objects.filter(group_participation=group).all()
+        return UserModelSerializer(users, many=True).data
 
     def get_enterprise(self, group):
         """get enterprise."""

@@ -9,8 +9,8 @@ from django.contrib.auth import password_validation, authenticate
 
 # Models
 from api.users.models import User, Profile, CorporalMeditions
-from api.move4it.models import Enterprise, Group, TypeMedition, RegisterActivity
-from api.move4it.serializers import EnterpriseSerializer, ActivitySerializer, ActivitySerializerForm
+from api.move4it.models import Enterprise, Group, TypeMedition, RegisterActivity, Competence
+from api.move4it.serializers import EnterpriseSerializer
 
 
 class CorporalMeditionsModelSerializer(serializers.ModelSerializer):
@@ -57,38 +57,58 @@ class ProfileModelSerializer(serializers.ModelSerializer):
 
 
 class UserModelSerializer(serializers.ModelSerializer):
+    """Base Inline User Model Serializer."""
     class Meta:
         """Meta class."""
         model = User
         fields = '__all__'
 
 
+class UserShortModelSerializer(serializers.ModelSerializer):
+    """User Short Model Serializer."""
+    class Meta:
+        """Meta class."""
+        model = User
+        fields = ('id', 'first_name', 'last_name', 'username', 'email',
+                  'phone_number', 'identification_number', 'type_user')
+
+
+class CompetenceModelSerializer(serializers.ModelSerializer):
+    """Competence model serializer."""
+    class Meta:
+        """Meta class."""
+        model = Competence
+        fields = '__all__'
+
+
 class GroupSerializer(serializers.ModelSerializer):
     """Group model serializer."""
-    enterprise = serializers.SerializerMethodField('get_enterprise')
-
-    participants = serializers.SerializerMethodField('get_participants')
-
-    def get_participants(self, group):
-        """get participants."""
-        users = User.objects.filter(group_participation=group).all()
-        return UserModelSerializer(users, many=True).data
+    competition = serializers.SerializerMethodField('get_enterprise')
 
     def get_enterprise(self, group):
         """get enterprise."""
+        request = self.context['request']
         groups = Enterprise.objects.filter(group=group).first()
-        return EnterpriseSerializer(groups, many=False).data
+        return EnterpriseSerializer(groups, many=False, context={'request': request}).data
 
     class Meta:
         """Meta class."""
         model = Group
-        fields = '__all__'
+        fields = ('id', 'name', 'competition')
 
 
 class UserResponseSerializer(serializers.ModelSerializer):
     """User model serializer."""
-    team = serializers.SerializerMethodField('get_team')
+    enterprise_competition_overflow = serializers.SerializerMethodField(
+        'get_enterprise')
     profile = serializers.SerializerMethodField('get_profile')
+
+    def get_enterprise(self, group):
+        """get enterprise."""
+        request = self.context['request']
+        groups = Enterprise.objects.filter(
+            group=group.group_participation).first()
+        return EnterpriseSerializer(groups, many=False, context={'request': request}).data
 
     def get_profile(self, user):
         """get profile."""
@@ -97,30 +117,33 @@ class UserResponseSerializer(serializers.ModelSerializer):
 
     def get_team(self, user):
         """get team."""
+        request = self.context['request']
         groups = Group.objects.filter(user=user).first()
-        return GroupSerializer(groups, many=False).data
+        return GroupSerializer(groups, many=False, context={'request': request}).data
 
     class Meta:
         """Meta class."""
         model = User
-        fields = "__all__"
+        fields = ('id', 'first_name', 'last_name', 'username', 'email', 'phone_number',
+                  'identification_number', 'type_user', 'enterprise_competition_overflow', 'profile')
 
 
 class ResetPasswordSerializer(serializers.Serializer):
+    """Reset password serializer."""
+
     user = serializers.EmailField()
     new_password = serializers.CharField(min_length=6, max_length=64)
 
-    def validate(self, data):
-        user = data['user']
+    def validate(self, attrs):
+        user = attrs['user']
         try:
             get_user = User.objects.get(email=user)
-            data_email = get_user.email
-        except:
-            raise serializers.ValidationError('El usuario no existe!')
-        get_user.set_password(data['new_password'])
+        except Exception as exc:
+            raise serializers.ValidationError('El usuario no existe!') from exc
+        get_user.set_password(attrs['new_password'])
         get_user.save()
 
-        return data
+        return attrs
 
 
 class UserLoginSerializer(serializers.Serializer):

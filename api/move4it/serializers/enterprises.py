@@ -1,7 +1,10 @@
-from django.db.models.base import Model
+"""Enterprise Serializer."""
+from datetime import date
 from rest_framework import serializers
-from api.move4it.models import Enterprise, Group, Competence, Interval, RegisterActivity, FileRegisterActivity
-from api.users.models import User
+from api.move4it.models import (Enterprise, Group, Competence,
+                                Interval, RegisterActivity, FileRegisterActivity)
+from api.users.models import CorporalMeditions
+from api.users.models import User, Profile
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -40,6 +43,15 @@ class IntervalSerializer(serializers.ModelSerializer):
     assignations = serializers.SerializerMethodField('get_activities')
     assignations_team = serializers.SerializerMethodField(
         'get_activities_team')
+    status = serializers.SerializerMethodField('set_status')
+
+    def set_status(self, obj):
+        """set status"""
+        today = date.today()
+        if obj.end_date < today:
+            return "Finalizado"
+        elif obj.start_date <= today and obj.end_date >= today:
+            return "Activo"
 
     def get_activities_team(self, interval):
         group_participation = self.context.get(
@@ -156,7 +168,7 @@ class IntervalSerializer(serializers.ModelSerializer):
     class Meta:
         model = Interval
         fields = ('start_date', 'end_date',
-                  "assignations_team", 'assignations', )
+                  'assignations_team', 'assignations', 'status')
         depth = 3
 
 
@@ -165,10 +177,11 @@ class CompetenceSerializer(serializers.ModelSerializer):
     intervals = serializers.SerializerMethodField('get_intervals')
 
     def get_intervals(self, competence):
-        request = self.context['request']
+        group_participation = self.context.get(
+            'request').user.group_participation
         intervals = Interval.objects.filter(competence=competence).all()
         serialized_intervals = IntervalSerializer(
-            intervals, many=True, context={'request': request}).data
+            intervals, many=True).data
         return serialized_intervals
 
     class Meta:
@@ -177,10 +190,239 @@ class CompetenceSerializer(serializers.ModelSerializer):
         depth = 2
 
 
+class CompetenceSelectSerializer(serializers.ModelSerializer):
+    stats = serializers.SerializerMethodField('get_stats')
+    days_remaining_competence = serializers.SerializerMethodField(
+        'get_days_remaining_competence')
+    days_remaining_interval = serializers.SerializerMethodField(
+        'get_days_remaining_interval')
+
+    def get_stats(self, competence):
+        """Get statistics for the given competence."""
+        intervals = Interval.objects.filter(
+            competence=competence).order_by('-end_date').all()
+        active_interval = self._get_active_interval(intervals)
+        if active_interval:
+            intervals = [active_interval] + \
+                [interval for interval in intervals if interval !=
+                    active_interval and interval.end_date <= date.today()]
+
+        team_data = self._initialize_team_data(intervals)
+
+        for interval in intervals:
+            self._process_interval(interval, team_data)
+
+        ranking, my_team = self._generate_ranking(team_data)
+        current_interval_data = self._get_current_interval_data(
+            active_interval)
+        historical_data = self._get_historical_data(intervals)
+
+        return {
+            'teams': ranking,
+            'my_team': my_team,
+            'current_interval': active_interval.id if active_interval else None,
+            'current_interval_data': current_interval_data,
+            'historical_data': historical_data
+        }
+
+    def get_days_remaining_competence(self, competence):
+        """Get days remaining for the competence to end."""
+        today = date.today()
+        end_date = competence.end_date
+        return (end_date - today).days if end_date >= today else 0
+
+    def get_days_remaining_interval(self, competence):
+        """Get days remaining for the current interval to end."""
+        active_interval = self._get_active_interval(
+            Interval.objects.filter(competence=competence).order_by('-end_date').all())
+        if active_interval:
+            today = date.today()
+            end_date = active_interval.end_date
+            return (end_date - today).days if end_date >= today else 0
+        return 0
+
+    def _initialize_team_data(self, intervals):
+        return {
+            'total_activities': 0,
+            'team_points': {},
+            'team_participants': {},
+            'team_interval_points': {},
+            'interval_activity_count': {},
+            'interval_completed_activity_count': {},
+            'interval_incomplete_activity_count': {},
+            'team_medition_avg': {}
+        }
+
+    def _get_active_interval(self, intervals):
+        today = date.today()
+        for interval in intervals:
+            if interval.start_date <= today <= interval.end_date:
+                return interval
+        return None
+
+    def _process_interval(self, interval, team_data):
+        activities = RegisterActivity.objects.filter(
+            interval=interval).all()
+        team_data['interval_activity_count'][interval.id] = activities.count()
+        team_data['interval_completed_activity_count'][interval.id] = activities.filter(
+            is_completed=True).count()
+        team_data['interval_incomplete_activity_count'][interval.id] = activities.filter(
+            is_completed=False).count()
+
+        for activity in activities:
+            team_id = activity.user.group_participation.id
+            if team_id not in team_data['team_points']:
+                team_data['team_points'][team_id] = 0
+                team_data['team_participants'][team_id] = set()
+                team_data['team_interval_points'][team_id] = {}
+                team_data['team_medition_avg'][team_id] = {
+                    'weight': [],
+                    'height': [],
+                    'fat': []
+                }
+
+            if activity.is_active:
+                team_data['team_participants'][team_id].add(
+                    activity.user.id)
+
+            if interval.id not in team_data['team_interval_points'][team_id]:
+                team_data['team_interval_points'][team_id][interval.id] = 0
+
+            if activity.is_completed:
+                team_data['team_points'][team_id] += activity.activity.points
+                team_data['team_interval_points'][team_id][interval.id] += activity.activity.points
+
+            # Add corporal medition to team data
+            meditions = CorporalMeditions.objects.filter(
+                profile=Profile.objects.filter(user=activity.user).last()).all()
+            for medition in meditions:
+                team_data['team_medition_avg'][team_id]['weight'].append(
+                    medition.weight)
+                team_data['team_medition_avg'][team_id]['height'].append(
+                    medition.height)
+                team_data['team_medition_avg'][team_id]['fat'].append(
+                    medition.fat)
+
+            team_data['total_activities'] += 1
+
+    def _generate_ranking(self, team_data):
+        ranking = []
+        my_team = None
+        for team_id in team_data['team_points']:
+            interval_points, total = self._calculate_interval_points(
+                team_id, team_data)
+            medition_avg = self._calculate_medition_avg(
+                team_data['team_medition_avg'][team_id])
+            team_info = {
+                'team_id': team_id,
+                'points': total,
+                'intervals': interval_points,
+                'medition_avg': medition_avg
+            }
+
+            if team_id == self.context['request'].user.group_participation.id:
+                my_team = team_info
+
+            ranking.append(team_info)
+
+        ranking.sort(key=lambda x: x['points'], reverse=True)
+        for position, team in enumerate(ranking, start=1):
+            team['position'] = position
+            if team['team_id'] == self.context['request'].user.group_participation.id:
+                my_team['position'] = position
+
+        return ranking, my_team
+
+    def _calculate_interval_points(self, team_id, team_data):
+        interval_points = []
+        total = 0
+        for interval_id, interval_points_sum in team_data['team_interval_points'][team_id].items():
+            interval_activities = RegisterActivity.objects.filter(
+                interval_id=interval_id, user__group_participation_id=team_id).all()
+            interval_participants = set(
+                activity.user.id for activity in interval_activities if activity.is_active)
+            interval_obj = Interval.objects.get(id=interval_id)
+            points = interval_points_sum / \
+                len(interval_participants) if interval_participants else 0
+            interval_points.append({
+                'interval_id': interval_id,
+                'start_date': interval_obj.start_date,
+                'end_date': interval_obj.end_date,
+                'points': points,
+                'participants_count': len(interval_participants),
+                'completed_activities': team_data['interval_completed_activity_count'][interval_id],
+                'incomplete_activities': team_data['interval_incomplete_activity_count'][interval_id]
+            })
+            total += points
+        return interval_points, total
+
+    def _calculate_medition_avg(self, meditions):
+        if not meditions['weight'] or not meditions['height'] or not meditions['fat']:
+            return {'weight': 0, 'height': 0, 'fat': 0}
+        return {
+            'weight': sum(meditions['weight']) / len(meditions['weight']),
+            'height': sum(meditions['height']) / len(meditions['height']),
+            'fat': sum(meditions['fat']) / len(meditions['fat'])
+        }
+
+    def _get_current_interval_data(self, active_interval):
+        if not active_interval:
+            return None
+
+        user = self.context['request'].user
+        user_activities = RegisterActivity.objects.filter(
+            interval=active_interval, user=user).all()
+        team_activities = RegisterActivity.objects.filter(
+            interval=active_interval, user__group_participation=user.group_participation).all()
+
+        team_activities_by_user = {}
+        for activity in team_activities:
+            user_email = activity.user.email
+            if user_email not in team_activities_by_user:
+                team_activities_by_user[user_email] = []
+            team_activities_by_user[user_email].append({
+                'activity': activity.activity.name,
+                'is_completed': activity.is_completed
+            })
+
+        return {
+            'user': RegisterActivitySerializer(user_activities, many=True).data,
+            'my_group': team_activities_by_user
+        }
+
+    def _get_historical_data(self, intervals):
+        historical_data = []
+        for interval in intervals:
+            interval_data = self._get_current_interval_data(interval)
+            if interval_data:
+                historical_data.append({
+                    'interval_id': interval.id,
+                    'start_date': interval.start_date,
+                    'end_date': interval.end_date,
+                    'data': interval_data
+                })
+        return historical_data
+
+    class Meta:
+        model = Competence
+        fields = ('id', 'name', 'description', 'start_date',
+                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval')
+
+
 class EnterpriseSerializer(serializers.ModelSerializer):
+    last_competence = serializers.SerializerMethodField('get_competence')
+
+    def get_competence(self, enterprise):
+        request = self.context['request']
+        competences = Competence.objects.filter(
+            enterprise=enterprise).last()
+        serializer = CompetenceSelectSerializer(
+            competences, many=False, context={'request': request})
+        return serializer.data
+
     class Meta:
         model = Enterprise
-        fields = '__all__'
+        fields = ('id', 'name', 'last_competence')
 
 
 class GroupSerializerList(serializers.ModelSerializer):

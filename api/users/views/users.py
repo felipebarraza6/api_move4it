@@ -75,12 +75,13 @@ class UserViewSet(mixins.RetrieveModelMixin,
     @action(detail=False, methods=['post'])
     def login(self, request):
         """User sign in."""
-        serializer = UserLoginSerializer(data=request.data)
+        serializer = UserLoginSerializer(
+            data=request.data, )
         serializer.is_valid(raise_exception=True)
         user, token = serializer.save()
 
         data = {
-            'user': UserResponseSerializer(user).data,
+            'user': UserResponseSerializer(user, context={'request': request}).data,
             'access_token': token,
 
         }

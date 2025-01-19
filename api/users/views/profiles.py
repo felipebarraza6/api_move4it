@@ -8,7 +8,6 @@ from rest_framework.permissions import (
     IsAuthenticated
 )
 
-
 # Models
 from api.users.models import Profile, SportActivity, PreviousIllnesse  # Serializers
 from api.users.serializers import ProfileModelSerializer, SportActivityModelSerializer, PreviousIllnesseModelSerializer

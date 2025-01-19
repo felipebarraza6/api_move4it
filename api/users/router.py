@@ -7,7 +7,7 @@ from django.urls import include, path
 from rest_framework.routers import DefaultRouter
 
 # Views
-from api.users.views import users as views_users, profiles as views_profile 
+from api.users.views import users as views_users, profiles as views_profile
 
 router = DefaultRouter()
 

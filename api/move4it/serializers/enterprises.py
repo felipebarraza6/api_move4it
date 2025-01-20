@@ -34,7 +34,7 @@ class RegisterActivitySerializer(serializers.ModelSerializer):
 
     class Meta:
         model = RegisterActivity
-        fields = ('id',  'activity', 'location', 'value',
+        fields = ('id',  'activity', 'location', 'value', 'interval',
                   'is_active', 'is_load', 'is_completed', 'observation', 'location', 'files', 'user')
         depth = 3
 
@@ -196,6 +196,37 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
         'get_days_remaining_competence')
     days_remaining_interval = serializers.SerializerMethodField(
         'get_days_remaining_interval')
+    avg_corporal_meditions = serializers.SerializerMethodField(
+        'get_avg_corporal_meditions')
+
+    def get_avg_corporal_meditions(self, competence):
+        """Calculate average corporal meditions for the given competence."""
+        meditions = CorporalMeditions.objects.filter(
+            profile__user__group_participation__enterprise=competence.enterprise).all()
+        total_weight = 0
+        total_height = 0
+        total_fat = 0
+        count = meditions.count()
+
+        for medition in meditions:
+            total_weight += medition.weight
+            total_height += medition.height
+            total_fat += medition.fat
+
+        if count > 0:
+            avg_weight = round(total_weight / count, 1)
+            avg_height = round(total_height / count, 1)
+            avg_fat = round(total_fat / count, 1)
+        else:
+            avg_weight = 0
+            avg_height = 0
+            avg_fat = 0
+
+        return {
+            'weight': avg_weight,
+            'height': avg_height,
+            'fat': avg_fat
+        }
 
     def get_stats(self, competence):
         """Get statistics for the given competence."""
@@ -220,7 +251,6 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
         return {
             'teams': ranking,
             'my_team': my_team,
-            'current_interval': active_interval.id if active_interval else None,
             'current_interval_data': current_interval_data,
             'historical_data': historical_data
         }
@@ -271,6 +301,7 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
 
         for activity in activities:
             team_id = activity.user.group_participation.id
+            team_name = activity.user.group_participation.name
             if team_id not in team_data['team_points']:
                 team_data['team_points'][team_id] = 0
                 team_data['team_participants'][team_id] = set()
@@ -315,6 +346,7 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
                 team_data['team_medition_avg'][team_id])
             team_info = {
                 'team_id': team_id,
+                'name': Group.objects.get(id=team_id).name,
                 'points': total,
                 'intervals': interval_points,
                 'medition_avg': medition_avg
@@ -351,7 +383,8 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
                 'points': points,
                 'participants_count': len(interval_participants),
                 'completed_activities': team_data['interval_completed_activity_count'][interval_id],
-                'incomplete_activities': team_data['interval_incomplete_activity_count'][interval_id]
+                'incomplete_activities': team_data['interval_incomplete_activity_count'][interval_id],
+                'activities': RegisterActivitySerializer(interval_activities, many=True).data
             })
             total += points
         return interval_points, total
@@ -382,10 +415,15 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
                 team_activities_by_user[user_email] = []
             team_activities_by_user[user_email].append({
                 'activity': activity.activity.name,
-                'is_completed': activity.is_completed
+                'is_completed': activity.is_completed,
+                'is_load': activity.is_load,
+                'start_date': activity.interval.start_date,
+                'end_date': activity.interval.end_date
             })
 
         return {
+            'start_date': active_interval.start_date,
+            'end_date': active_interval.end_date,
             'user': RegisterActivitySerializer(user_activities, many=True).data,
             'my_group': team_activities_by_user
         }
@@ -393,7 +431,8 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
     def _get_historical_data(self, intervals):
         historical_data = []
         for interval in intervals:
-            interval_data = self._get_current_interval_data(interval)
+            interval_data = self._get_historical_interval_data(
+                interval)
             if interval_data:
                 historical_data.append({
                     'interval_id': interval.id,
@@ -403,10 +442,34 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
                 })
         return historical_data
 
+    def _get_historical_interval_data(self, interval):
+        user = self.context['request'].user
+        user_activities = RegisterActivity.objects.filter(
+            interval=interval, user=user).all()
+        team_activities = RegisterActivity.objects.filter(
+            interval=interval, user__group_participation=user.group_participation).all()
+
+        user_data = {
+            'is_active': user_activities.filter(is_active=True).count(),
+            'is_completed': user_activities.filter(is_completed=True).count(),
+            'activities': RegisterActivitySerializer(user_activities, many=True).data
+        }
+
+        team_data = {
+            'is_active': team_activities.filter(is_active=True).count(),
+            'is_completed': team_activities.filter(is_completed=True).count(),
+            'activities': RegisterActivitySerializer(team_activities, many=True).data
+        }
+
+        return {
+            'user': user_data,
+            'my_team': team_data
+        }
+
     class Meta:
         model = Competence
         fields = ('id', 'name', 'description', 'start_date',
-                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval')
+                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval', 'avg_corporal_meditions')
 
 
 class EnterpriseSerializer(serializers.ModelSerializer):

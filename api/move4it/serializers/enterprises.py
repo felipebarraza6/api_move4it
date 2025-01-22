@@ -198,6 +198,39 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
         'get_days_remaining_interval')
     avg_corporal_meditions = serializers.SerializerMethodField(
         'get_avg_corporal_meditions')
+    intervals_to_back = serializers.SerializerMethodField(
+        'get_intervals_to_back')
+
+    def get_intervals_to_back(self, competence):
+        intervals = Interval.objects.filter(
+            competence=competence).order_by('-end_date').all()
+        serialized_intervals = []
+        today = date.today()
+        for interval in intervals:
+            if interval.start_date <= today <= interval.end_date:
+                current_interval = interval
+                break
+        else:
+            current_interval = None
+
+        if current_interval:
+            intervals = [current_interval] + \
+                [interval for interval in intervals if interval.end_date < today]
+
+        for interval in intervals:
+            activities = RegisterActivity.objects.filter(
+                interval=interval).all()
+            activity_names = [
+                activity.activity.name for activity in activities]
+            unique_activity_names = list(set(activity_names))
+            serialized_intervals.append({
+                'interval_id': interval.id,
+                'start_date': interval.start_date,
+                'end_date': interval.end_date,
+                'activities': unique_activity_names
+            })
+
+        return serialized_intervals
 
     def get_avg_corporal_meditions(self, competence):
         """Calculate average corporal meditions for the given competence."""
@@ -438,7 +471,8 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
                     'interval_id': interval.id,
                     'start_date': interval.start_date,
                     'end_date': interval.end_date,
-                    'data': interval_data
+                    'data': interval_data,
+
                 })
         return historical_data
 
@@ -469,7 +503,7 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competence
         fields = ('id', 'name', 'description', 'start_date',
-                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval', 'avg_corporal_meditions')
+                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval', 'avg_corporal_meditions', 'intervals_to_back')
 
 
 class EnterpriseSerializer(serializers.ModelSerializer):

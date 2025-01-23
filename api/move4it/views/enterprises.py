@@ -16,7 +16,7 @@ from rest_framework.permissions import (
 
 # Models
 from api.move4it.models import Competence, Enterprise, Group
-from api.move4it.serializers import CompetenceSerializer, EnterpriseSerializer, GroupSerializerList, GroupSerializer, CompetenceRetrieveSerializer
+from api.move4it.serializers import CompetenceRankingSerializer,CompetenceSerializer, EnterpriseSerializer, GroupSerializerList, GroupSerializer, CompetenceRetrieveSerializer
 
 
 class CompetenceViewSet(mixins.RetrieveModelMixin,
@@ -37,7 +37,7 @@ class CompetenceViewSet(mixins.RetrieveModelMixin,
         if self.action in ['retrieve']:
             return CompetenceRetrieveSerializer
         elif self.action in ['list']:
-            return CompetenceRetrieveSerializer
+            return CompetenceRankingSerializer
         return CompetenceSerializer
 
     class FilterCompetence (filters.FilterSet):

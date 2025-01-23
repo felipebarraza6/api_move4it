@@ -539,8 +539,7 @@ class GroupSerializer(serializers.ModelSerializer):
         model = Group
         fields = '__all__'
 
-
-class CompetenceRetrieveSerializer(serializers.ModelSerializer):
+class CompetenceRankingSerializer(serializers.ModelSerializer):
     ranking = serializers.SerializerMethodField('get_ranking')
 
     def get_ranking(self, competence):
@@ -549,16 +548,79 @@ class CompetenceRetrieveSerializer(serializers.ModelSerializer):
         team_points = {}
         interval_data = {}
 
+        # Inicializa interval_data con todos los intervalos para cada equipo
         for interval in intervals:
-            activities = RegisterActivity.objects.filter(
-                interval=interval).all()
-            for activity in activities:
-                team_id = activity.user.group_participation.id
-                if team_id not in team_points:
-                    team_points[team_id] = 0
-                if activity.is_completed:
-                    team_points[team_id] += activity.activity.points
+            teams = Group.objects.all()
+            for team in teams:
+                team_id = team.id
+                if team_id not in interval_data:
+                    interval_data[team_id] = {}
+                if interval.id not in interval_data[team_id]:
+                    interval_data[team_id][interval.id] = {
+                        'unique_participants': set(),
+                        'completed_activities_count': 0,
+                        'total_points': 0,
+                        'is_load_activities_count': 0
+                    }
 
+        # Rellena interval_data con las actividades filtradas por equipo e intervalo
+        for interval in intervals:
+            register_activities = RegisterActivity.objects.filter(
+                interval=interval).all()
+            for register_activity in register_activities:
+                team_id = register_activity.user.group_participation.id
+                interval_data[team_id][interval.id]['unique_participants'].add(register_activity.user.id)
+                if register_activity.is_completed:
+                    interval_data[team_id][interval.id]['completed_activities_count'] += 1
+                    interval_data[team_id][interval.id]['total_points'] += register_activity.activity.points
+                if register_activity.is_load:
+                    interval_data[team_id][interval.id]['is_load_activities_count'] += 1
+
+        # Calcula puntos promedio por intervalo
+        for team_id in interval_data:
+            for interval_id in interval_data[team_id]:
+                interval = interval_data[team_id][interval_id]
+                if interval['unique_participants']:
+                    interval['average_points'] = interval['total_points'] / len(interval['unique_participants'])
+                else:
+                    interval['average_points'] = 0
+
+        # Suma puntos promedio para el ranking
+        for team_id in interval_data:
+            team_points[team_id] = sum(interval['average_points'] for interval in interval_data[team_id].values())
+
+        ranking = sorted(team_points.items(), key=lambda x: x[1], reverse=True)
+        ranked_teams = []
+        for position, (team_id, points) in enumerate(ranking, start=1):
+            team = Group.objects.get(id=team_id)
+            ranked_teams.append({
+                'team_id': team_id,
+                'team_name': team.name,
+                'points': points,
+                'position': position
+            })
+
+        return {'teams': ranked_teams}
+
+    class Meta:
+        model = Competence
+        fields = ('name','ranking',)
+
+class CompetenceRetrieveSerializer(serializers.ModelSerializer):
+    ranking = serializers.SerializerMethodField('get_ranking')
+
+    def get_ranking(self, competence):
+        request = self.context.get('request')
+        intervals = Interval.objects.filter(
+            competence=competence).order_by('start_date').all()
+        team_points = {}
+        interval_data = {}
+
+        # Inicializa interval_data con todos los intervalos para cada equipo
+        for interval in intervals:
+            teams = Group.objects.all()
+            for team in teams:
+                team_id = team.id
                 if team_id not in interval_data:
                     interval_data[team_id] = {}
                 if interval.id not in interval_data[team_id]:
@@ -566,32 +628,52 @@ class CompetenceRetrieveSerializer(serializers.ModelSerializer):
                         'interval_id': interval.id,
                         'start_date': interval.start_date,
                         'end_date': interval.end_date,
-                        'activities': []
+                        'activities': {},
+                        'unique_participants': set(),
+                        'completed_activities_count': 0,
+                        'total_points': 0,
+                        'is_load_activities_count': 0
                     }
-                interval_data[team_id][interval.id]['activities'].append({
-                    'activity_id': activity.id,
-                    'activity_name': activity.activity.name,
-                    'is_completed': activity.is_completed,
-                    'is_load': activity.is_load,
-                    'points': activity.activity.points if activity.is_completed else 0
-                })
 
-        # Calculate unique users per team
-        team_users = {}
+        # Rellena interval_data con las actividades filtradas por equipo e intervalo
         for interval in intervals:
-            activities = RegisterActivity.objects.filter(
+            register_activities = RegisterActivity.objects.filter(
                 interval=interval).all()
-            for activity in activities:
-                team_id = activity.user.group_participation.id
-                if team_id not in team_users:
-                    team_users[team_id] = set()
-                team_users[team_id].add(activity.user.id)
+            for register_activity in register_activities:
+                team_id = register_activity.user.group_participation.id
+                activity_name = register_activity.activity.name
+                if activity_name not in interval_data[team_id][interval.id]['activities']:
+                    interval_data[team_id][interval.id]['activities'][activity_name] = []
 
-        # Divide points by unique users
-        for team_id in team_points:
-            unique_users_count = len(team_users[team_id])
-            if unique_users_count > 0:
-                team_points[team_id] /= unique_users_count
+                interval_data[team_id][interval.id]['activities'][activity_name].append({
+                    'user_email': register_activity.user.email,
+                    'is_completed': register_activity.is_completed,
+                    'is_load': register_activity.is_load,
+                    'file': request.build_absolute_uri(register_activity.file.url) if register_activity.file else None,
+                    'register_activity_id': register_activity.id,
+                })
+                interval_data[team_id][interval.id]['unique_participants'].add(register_activity.user.id)
+                if register_activity.is_completed:
+                    interval_data[team_id][interval.id]['completed_activities_count'] += 1
+                    interval_data[team_id][interval.id]['total_points'] += register_activity.activity.points
+                if register_activity.is_load:
+                    interval_data[team_id][interval.id]['is_load_activities_count'] += 1
+
+        # Calcula usuarios únicos por equipo
+        team_users = {team_id: len(participants['unique_participants']) for team_id, intervals in interval_data.items() for interval_id, participants in intervals.items()}
+
+        # Calcula puntos promedio por intervalo
+        for team_id in interval_data:
+            for interval_id in interval_data[team_id]:
+                interval = interval_data[team_id][interval_id]
+                if interval['unique_participants']:
+                    interval['average_points'] = interval['total_points'] / len(interval['unique_participants'])
+                else:
+                    interval['average_points'] = 0
+
+        # Suma puntos promedio para el ranking
+        for team_id in interval_data:
+            team_points[team_id] = sum(interval['average_points'] for interval in interval_data[team_id].values())
 
         ranking = sorted(team_points.items(), key=lambda x: x[1], reverse=True)
         ranked_teams = []
@@ -604,10 +686,27 @@ class CompetenceRetrieveSerializer(serializers.ModelSerializer):
                 'team_name': team.name,
                 'points': points,
                 'position': position,
-                'intervals': intervals_list
+                'intervals': [
+                    {
+                        'interval_id': interval['interval_id'],
+                        'start_date': interval['start_date'].strftime('%d-%m'),
+                        'end_date': interval['end_date'].strftime('%d-%m'),
+                        'average_points': interval['average_points'],
+                        'completed_activities_count': interval['completed_activities_count'],
+                        'is_load_activities_count': interval['is_load_activities_count'],
+                        'activities': [
+                            {
+                                'activity_name': activity_name,
+                                'registers': activity_registers
+                            }
+                            for activity_name, activity_registers in interval['activities'].items()
+                        ]
+                    }
+                    for interval in intervals_list
+                ]
             })
 
-        return ranked_teams
+        return {'teams': ranked_teams}
 
     class Meta:
         model = Competence

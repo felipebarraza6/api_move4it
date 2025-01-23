@@ -130,7 +130,7 @@ class FileRegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
 @admin.register(RegisterActivity)
 class RegisterActivityAdmin(ExportActionMixin, admin.ModelAdmin):
     """Register activity."""
-    list_display = ('activity', "user", 'enterprise',
+    list_display = ("id",'activity', "user", 'enterprise',
                     'set_status', "is_completed", "is_load")
 
     list_filter = ('interval__competence__name',

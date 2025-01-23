@@ -20,7 +20,7 @@ from rest_framework.permissions import (
 # Models
 from api.users.models import User, CorporalMeditions, Profile
 # Serializers
-from api.users.serializers import CorporalMeditionsModelSerializer, ResetPasswordSerializer, UserResponseSerializer, UserLoginSerializer, UserModelSerializer, UserSignUpSerializer
+from api.users.serializers import ProfileModelSerializer, CorporalMeditionsModelSerializer, ResetPasswordSerializer, UserResponseSerializer, UserLoginSerializer, UserModelSerializer, UserSignUpSerializer
 
 
 class UserViewSet(mixins.RetrieveModelMixin,
@@ -85,8 +85,8 @@ class UserViewSet(mixins.RetrieveModelMixin,
 
         data = {
             'user': {
-            **UserResponseSerializer(user, context={'request': request}).data,
-            'my_profile': ProfileSerializer(my_profile).data
+                **UserResponseSerializer(user, context={'request': request}).data,
+                'my_profile': ProfileModelSerializer(my_profile).data
             },
             'access_token': token,
         }

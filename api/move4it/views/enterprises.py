@@ -16,14 +16,14 @@ from rest_framework.permissions import (
 
 # Models
 from api.move4it.models import Competence, Enterprise, Group
-from api.move4it.serializers import CompetenceSerializer, EnterpriseSerializer, GroupSerializerList, GroupSerializer
+from api.move4it.serializers import CompetenceSerializer, EnterpriseSerializer, GroupSerializerList, GroupSerializer, CompetenceRetrieveSerializer
 
 
 class CompetenceViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                        mixins.UpdateModelMixin,
+                        mixins.ListModelMixin,
+                        mixins.DestroyModelMixin,
+                        viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -32,6 +32,13 @@ class CompetenceViewSet(mixins.RetrieveModelMixin,
 
     filter_backends = (filters.DjangoFilterBackend,)
     serializer_class = CompetenceSerializer
+
+    def get_serializer_class(self):
+        if self.action in ['retrieve']:
+            return CompetenceRetrieveSerializer
+        elif self.action in ['list']:
+            return CompetenceRetrieveSerializer
+        return CompetenceSerializer
 
     class FilterCompetence (filters.FilterSet):
         class Meta:
@@ -43,14 +50,12 @@ class CompetenceViewSet(mixins.RetrieveModelMixin,
     queryset = Competence.objects.all()
     lookup_field = 'id'
 
-    
-
 
 class EnterpriseViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                        mixins.UpdateModelMixin,
+                        mixins.ListModelMixin,
+                        mixins.DestroyModelMixin,
+                        viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -72,10 +77,10 @@ class EnterpriseViewSet(mixins.RetrieveModelMixin,
 
 
 class GroupViewSet(mixins.RetrieveModelMixin,
-                  mixins.UpdateModelMixin,
-                  mixins.ListModelMixin,
-                  mixins.DestroyModelMixin,
-                  viewsets.GenericViewSet,):
+                   mixins.UpdateModelMixin,
+                   mixins.ListModelMixin,
+                   mixins.DestroyModelMixin,
+                   viewsets.GenericViewSet,):
 
     def get_permissions(self):
         """Assign permissions based on action."""
@@ -99,5 +104,3 @@ class GroupViewSet(mixins.RetrieveModelMixin,
     filterset_class = FilterGroup
     queryset = Group.objects.all()
     lookup_field = 'id'
-
-

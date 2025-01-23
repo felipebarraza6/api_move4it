@@ -24,6 +24,13 @@ class RegisterActivity(ModelApi):
         max_length=1200, blank=True, null=True, verbose_name='ubicación(lat/long)')
     value = models.FloatField(verbose_name='valor', blank=True, null=True)
 
+    def user_directory_path(instance, filename):
+        # file will be uploaded to MEDIA_ROOT/user_<id>/<filename>
+        return 'user_{0}/{1}'.format(instance.user.id, filename)
+
+    file = models.FileField(
+        upload_to=user_directory_path, blank=True, null=True)
+
     is_active = models.BooleanField(default=True, verbose_name='esa activo')
     is_completed = models.BooleanField(
         default=False, verbose_name='esta completado')

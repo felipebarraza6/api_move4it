@@ -538,3 +538,78 @@ class GroupSerializer(serializers.ModelSerializer):
     class Meta:
         model = Group
         fields = '__all__'
+
+
+class CompetenceRetrieveSerializer(serializers.ModelSerializer):
+    ranking = serializers.SerializerMethodField('get_ranking')
+
+    def get_ranking(self, competence):
+        intervals = Interval.objects.filter(
+            competence=competence).order_by('start_date').all()
+        team_points = {}
+        interval_data = {}
+
+        for interval in intervals:
+            activities = RegisterActivity.objects.filter(
+                interval=interval).all()
+            for activity in activities:
+                team_id = activity.user.group_participation.id
+                if team_id not in team_points:
+                    team_points[team_id] = 0
+                if activity.is_completed:
+                    team_points[team_id] += activity.activity.points
+
+                if team_id not in interval_data:
+                    interval_data[team_id] = {}
+                if interval.id not in interval_data[team_id]:
+                    interval_data[team_id][interval.id] = {
+                        'interval_id': interval.id,
+                        'start_date': interval.start_date,
+                        'end_date': interval.end_date,
+                        'activities': []
+                    }
+                interval_data[team_id][interval.id]['activities'].append({
+                    'activity_id': activity.id,
+                    'activity_name': activity.activity.name,
+                    'is_completed': activity.is_completed,
+                    'is_load': activity.is_load,
+                    'points': activity.activity.points if activity.is_completed else 0
+                })
+
+        # Calculate unique users per team
+        team_users = {}
+        for interval in intervals:
+            activities = RegisterActivity.objects.filter(
+                interval=interval).all()
+            for activity in activities:
+                team_id = activity.user.group_participation.id
+                if team_id not in team_users:
+                    team_users[team_id] = set()
+                team_users[team_id].add(activity.user.id)
+
+        # Divide points by unique users
+        for team_id in team_points:
+            unique_users_count = len(team_users[team_id])
+            if unique_users_count > 0:
+                team_points[team_id] /= unique_users_count
+
+        ranking = sorted(team_points.items(), key=lambda x: x[1], reverse=True)
+        ranked_teams = []
+        for position, (team_id, points) in enumerate(ranking, start=1):
+            team = Group.objects.get(id=team_id)
+            intervals_list = list(interval_data[team_id].values())
+            intervals_list.sort(key=lambda x: x['start_date'])
+            ranked_teams.append({
+                'team_id': team_id,
+                'team_name': team.name,
+                'points': points,
+                'position': position,
+                'intervals': intervals_list
+            })
+
+        return ranked_teams
+
+    class Meta:
+        model = Competence
+        fields = '__all__'
+        depth = 2

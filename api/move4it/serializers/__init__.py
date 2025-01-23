@@ -1,3 +1,3 @@
 from .blogs import BlogModelSerializer
-from .enterprises import EnterpriseSerializer, GroupSerializer, CompetenceSerializer, GroupSerializerList 
+from .enterprises import CompetenceRetrieveSerializer, EnterpriseSerializer, GroupSerializer, CompetenceSerializer, GroupSerializerList
 from .activities import ActivitySerializerForm, ActivitySerializer, ActivityCategorySerializer, RegisterActivitySerializer, FileRegisterActivitySerializer

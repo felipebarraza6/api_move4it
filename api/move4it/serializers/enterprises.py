@@ -542,10 +542,12 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class CompetenceRankingSerializer(serializers.ModelSerializer):
     ranking = serializers.SerializerMethodField('get_ranking')
+    
 
     def get_ranking(self, competence):
+        today = date.today()
         intervals = Interval.objects.filter(
-            competence=competence).order_by('start_date').all()
+            competence=competence, end_date__lte=today).order_by('start_date').all()
         team_points = {}
         interval_data = {}
 
@@ -561,7 +563,8 @@ class CompetenceRankingSerializer(serializers.ModelSerializer):
                         'unique_participants': set(),
                         'completed_activities_count': 0,
                         'total_points': 0,
-                        'is_load_activities_count': 0
+                        'is_load_activities_count': 0,
+                        'accumulated_points': 0
                     }
 
         # Rellena interval_data con las actividades filtradas por equipo e intervalo
@@ -578,8 +581,9 @@ class CompetenceRankingSerializer(serializers.ModelSerializer):
                 if register_activity.is_load:
                     interval_data[team_id][interval.id]['is_load_activities_count'] += 1
 
-        # Calcula puntos promedio por intervalo
+        # Calcula puntos promedio por intervalo y puntos acumulados
         for team_id in interval_data:
+            accumulated_points = 0
             for interval_id in interval_data[team_id]:
                 interval = interval_data[team_id][interval_id]
                 if interval['unique_participants']:
@@ -587,6 +591,8 @@ class CompetenceRankingSerializer(serializers.ModelSerializer):
                         len(interval['unique_participants'])
                 else:
                     interval['average_points'] = 0
+                accumulated_points += interval['average_points']
+                interval['accumulated_points'] = accumulated_points
 
         # Suma puntos promedio para el ranking
         for team_id in interval_data:
@@ -597,22 +603,61 @@ class CompetenceRankingSerializer(serializers.ModelSerializer):
         ranked_teams = []
         for position, (team_id, points) in enumerate(ranking, start=1):
             team = Group.objects.get(id=team_id)
+            intervals_points = [
+                {
+                    'interval_id': interval_id,
+                    'start_date': Interval.objects.get(id=interval_id).start_date,
+                    'end_date': Interval.objects.get(id=interval_id).end_date,
+                    'accumulated_points': interval_data[team_id][interval_id]['accumulated_points']
+                }
+                for interval_id in interval_data[team_id]
+            ]
             ranked_teams.append({
                 'team_id': team_id,
                 'team_name': team.name,
                 'points': points,
-                'position': position
+                'position': position,
+                'intervals_points': intervals_points
             })
 
-        return {'teams': ranked_teams}
+        # Calcular el ranking por intervalo y acumulado
+        interval_rankings = []
+        accumulated_ranking = {}
+        for interval in intervals:
+            interval_ranking = self._get_interval_ranking(interval, interval_data)
+            for rank in interval_ranking:
+                team_id = rank['team_id']
+                if team_id not in accumulated_ranking:
+                    accumulated_ranking[team_id] = 0
+                accumulated_ranking[team_id] += rank['points']
+            sorted_accumulated_ranking = sorted(accumulated_ranking.items(), key=lambda x: x[1], reverse=True)
+            interval_rankings.append({
+                'interval_id': interval.id,
+                'start_date': interval.start_date,
+                'end_date': interval.end_date,
+                'ranking': [{'team_id': team_id, 'team_name': Group.objects.get(id=team_id).name, 'points': points} for team_id, points in sorted_accumulated_ranking]
+            })
+
+        return {'teams': ranked_teams, 'interval_rankings': interval_rankings}
+
+    def _get_interval_ranking(self, interval, interval_data):
+        """Calculate ranking for a specific interval."""
+        interval_points = {}
+        for team_id in interval_data:
+            if interval.id in interval_data[team_id]:
+                interval_points[team_id] = interval_data[team_id][interval.id]['accumulated_points']
+        sorted_teams = sorted(interval_points.items(), key=lambda x: x[1], reverse=True)
+        return [{'team_id': team_id, 'team_name': Group.objects.get(id=team_id).name, 'points': points} for team_id, points in sorted_teams]
 
     class Meta:
         model = Competence
         fields = ('id', 'name', 'ranking',)
 
-
+        
 class CompetenceRetrieveSerializer(serializers.ModelSerializer):
     ranking = serializers.SerializerMethodField('get_ranking')
+    
+    
 
     def get_ranking(self, competence):
         request = self.context.get('request')
@@ -620,6 +665,11 @@ class CompetenceRetrieveSerializer(serializers.ModelSerializer):
             competence=competence).order_by('start_date').all()
         team_points = {}
         interval_data = {}
+        
+        def get_interval_rankings(self, competence):
+            ranking_serializer = CompetenceRankingSerializer()
+            ranking_data = ranking_serializer.get_ranking(competence)
+            return ranking_data.get('interval_rankings', [])
 
         # Inicializa interval_data con todos los intervalos para cada equipo
         for interval in intervals:
@@ -716,7 +766,7 @@ class CompetenceRetrieveSerializer(serializers.ModelSerializer):
                 ]
             })
 
-        return {'teams': ranked_teams}
+        return {'teams': ranked_teams, 'intervals': get_interval_rankings(self, competence) }
 
     class Meta:
         model = Competence

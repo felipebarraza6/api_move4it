@@ -198,8 +198,148 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
         'get_days_remaining_interval')
     avg_corporal_meditions = serializers.SerializerMethodField(
         'get_avg_corporal_meditions')
+    avg_corporal_meditions_teams = serializers.SerializerMethodField(
+        'get_avg_corporal_meditions_team')
     intervals_to_back = serializers.SerializerMethodField(
         'get_intervals_to_back')
+
+    ranking = serializers.SerializerMethodField('get_ranking')
+
+    def get_ranking(self, competence):
+        request = self.context.get('request')
+        today = date.today()
+        intervals = Interval.objects.filter(
+            competence=competence, end_date__lt=today).order_by('start_date').all()
+        team_points = {}
+        interval_data = {}
+
+        def get_interval_rankings(self, competence):
+            ranking_serializer = CompetenceRankingSerializer()
+            ranking_data = ranking_serializer.get_ranking(competence)
+            return ranking_data.get('interval_rankings', [])
+
+        # Inicializa interval_data con todos los intervalos para cada equipo
+        for interval in intervals:
+            teams = Group.objects.all()
+            for team in teams:
+                team_id = team.id
+                if team_id not in interval_data:
+                    interval_data[team_id] = {}
+                if interval.id not in interval_data[team_id]:
+                    interval_data[team_id][interval.id] = {
+                        'interval_id': interval.id,
+                        'start_date': interval.start_date,
+                        'end_date': interval.end_date,
+                        'activities': {},
+                        'unique_participants': set(),
+                        'completed_activities_count': 0,
+                        'total_points': 0,
+                        'is_load_activities_count': 0
+                    }
+
+        # Rellena interval_data con las actividades filtradas por equipo e intervalo
+        for interval in intervals:
+            register_activities = RegisterActivity.objects.filter(
+                interval=interval).all()
+            for register_activity in register_activities:
+                team_id = register_activity.user.group_participation.id
+                activity_name = register_activity.activity.name
+                if activity_name not in interval_data[team_id][interval.id]['activities']:
+                    interval_data[team_id][interval.id]['activities'][activity_name] = [
+                    ]
+
+                interval_data[team_id][interval.id]['activities'][activity_name].append({
+                    'user_email': register_activity.user.email,
+                    'is_completed': register_activity.is_completed,
+                    'is_load': register_activity.is_load,
+                    'file': request.build_absolute_uri(register_activity.file.url) if register_activity.file else None,
+                    'register_activity_id': register_activity.id,
+                })
+                interval_data[team_id][interval.id]['unique_participants'].add(
+                    register_activity.user.id)
+                if register_activity.is_completed:
+                    interval_data[team_id][interval.id]['completed_activities_count'] += 1
+                    interval_data[team_id][interval.id]['total_points'] += register_activity.activity.points
+                if register_activity.is_load:
+                    interval_data[team_id][interval.id]['is_load_activities_count'] += 1
+
+        # Calcula usuarios únicos por equipo
+        team_users = {team_id: len(participants['unique_participants']) for team_id, intervals in interval_data.items(
+        ) for interval_id, participants in intervals.items()}
+
+        # Calcula puntos promedio por intervalo
+        for team_id in interval_data:
+            for interval_id in interval_data[team_id]:
+                interval = interval_data[team_id][interval_id]
+                if interval['unique_participants']:
+                    interval['average_points'] = interval['total_points'] / \
+                        len(interval['unique_participants'])
+                else:
+                    interval['average_points'] = 0
+
+        # Suma puntos promedio para el ranking
+        for team_id in interval_data:
+            team_points[team_id] = sum(interval['average_points']
+                                       for interval in interval_data[team_id].values())
+
+        ranking = sorted(team_points.items(), key=lambda x: x[1], reverse=True)
+        ranked_teams = []
+        for position, (team_id, points) in enumerate(ranking, start=1):
+            team = Group.objects.get(id=team_id)
+            intervals_list = list(interval_data[team_id].values())
+            intervals_list.sort(key=lambda x: x['start_date'])
+            ranked_teams.append({
+                'team_id': team_id,
+                'team_name': team.name,
+                'points': points,
+                'position': position,
+                'intervals': [
+                    {
+                        'interval_id': interval['interval_id'],
+                        'start_date': interval['start_date'].strftime('%d-%m'),
+                        'end_date': interval['end_date'].strftime('%d-%m'),
+                        'average_points': interval['average_points'],
+                        'completed_activities_count': interval['completed_activities_count'],
+                        'is_load_activities_count': interval['is_load_activities_count'],
+                        'activities': [
+                            {
+                                'activity_name': activity_name,
+                                'registers': activity_registers
+                            }
+                            for activity_name, activity_registers in interval['activities'].items()
+                        ]
+                    }
+                    for interval in intervals_list
+                ]
+            })
+
+        # Calcula el ranking por intervalos acumulados
+        interval_rankings = []
+        for i, interval in enumerate(intervals):
+            interval_points = {}
+            for team_id in interval_data:
+                interval_points[team_id] = sum(
+                    interval_data[team_id][intervals[j].id]['average_points']
+                    for j in range(i + 1)
+                )
+            interval_ranking = sorted(
+                interval_points.items(), key=lambda x: x[1], reverse=True)
+            interval_rankings.append({
+                'interval_id': interval.id,
+                'start_date': interval.start_date.strftime('%d-%m'),
+                'end_date': interval.end_date.strftime('%d-%m'),
+                'ranking': [
+                    {
+                        'team_id': team_id,
+                        'team_name': Group.objects.get(id=team_id).name,
+                        'points': points,
+                        'position': position + 1
+                    }
+                    for position, (team_id, points) in enumerate(interval_ranking)
+                ]
+            })
+
+        return {'teams': ranked_teams, 'intervals': interval_rankings}
 
     def get_intervals_to_back(self, competence):
         intervals = Interval.objects.filter(
@@ -233,32 +373,66 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
         return serialized_intervals
 
     def get_avg_corporal_meditions(self, competence):
-        """Calculate average corporal meditions for the given competence."""
+        """Calculate first and last average corporal meditions for the given competence."""
         meditions = CorporalMeditions.objects.filter(
-            profile__user__group_participation__enterprise=competence.enterprise).all()
-        total_weight = 0
-        total_height = 0
-        total_fat = 0
-        count = meditions.count()
+            profile__user__group_participation__enterprise=competence.enterprise).order_by('created').all()
 
-        for medition in meditions:
-            total_weight += medition.weight
-            total_height += medition.height
-            total_fat += medition.fat
+        if not meditions.exists():
+            return {
+                'first_avg': {'weight': 0, 'height': 0, 'fat': 0},
+                'last_avg': {'weight': 0, 'height': 0, 'fat': 0}
+            }
 
-        if count > 0:
-            avg_weight = round(total_weight / count, 1)
-            avg_height = round(total_height / count, 1)
-            avg_fat = round(total_fat / count, 1)
-        else:
-            avg_weight = 0
-            avg_height = 0
-            avg_fat = 0
+        first_medition = meditions.first()
+        last_medition = meditions.last()
+
+        first_avg = {
+            'weight': first_medition.weight,
+            'height': first_medition.height,
+            'fat': first_medition.fat
+        }
+
+        last_avg = {
+            'weight': last_medition.weight,
+            'height': last_medition.height,
+            'fat': last_medition.fat
+        }
 
         return {
-            'weight': avg_weight,
-            'height': avg_height,
-            'fat': avg_fat
+            'first_avg': first_avg,
+            'last_avg': last_avg
+        }
+
+    def get_avg_corporal_meditions_team(self, competence):
+        """Calculate first and last average corporal meditions for the given competence."""
+        my_user = self.context['request'].user
+        meditions = CorporalMeditions.objects.filter(
+            profile__user__group_participation=my_user.group_participation).order_by('created').all()
+
+        if not meditions.exists():
+            return {
+                'first_avg': {'weight': 0, 'height': 0, 'fat': 0},
+                'last_avg': {'weight': 0, 'height': 0, 'fat': 0}
+            }
+
+        first_medition = meditions.first()
+        last_medition = meditions.last()
+
+        first_avg = {
+            'weight': first_medition.weight,
+            'height': first_medition.height,
+            'fat': first_medition.fat
+        }
+
+        last_avg = {
+            'weight': last_medition.weight,
+            'height': last_medition.height,
+            'fat': last_medition.fat
+        }
+
+        return {
+            'first_avg': first_avg,
+            'last_avg': last_avg
         }
 
     def get_stats(self, competence):
@@ -431,6 +605,45 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
             'fat': sum(meditions['fat']) / len(meditions['fat'])
         }
 
+        def _calculate_medition_avg(self, meditions):
+            if not meditions:
+                return {'weight': 0, 'height': 0, 'fat': 0}
+            return {
+                'weight': sum(meditions) / len(meditions),
+                'height': sum(meditions) / len(meditions),
+                'fat': sum(meditions) / len(meditions)
+            }
+
+        def _get_avg_corporal_meditions(self, competence):
+            meditions = CorporalMeditions.objects.filter(
+                profile__user__group_participation__enterprise=competence.enterprise).order_by('created').all()
+
+            if not meditions.exists():
+                return {
+                    'first_avg': {'weight': 0, 'height': 0, 'fat': 0},
+                    'last_avg': {'weight': 0, 'height': 0, 'fat': 0}
+                }
+
+            first_medition = meditions.first()
+            last_medition = meditions.last()
+
+            first_avg = {
+                'weight': first_medition.weight,
+                'height': first_medition.height,
+                'fat': first_medition.fat
+            }
+
+            last_avg = {
+                'weight': last_medition.weight,
+                'height': last_medition.height,
+                'fat': last_medition.fat
+            }
+
+            return {
+                'first_avg': first_avg,
+                'last_avg': last_avg
+            }
+
     def _get_current_interval_data(self, active_interval):
         if not active_interval:
             return None
@@ -503,7 +716,7 @@ class CompetenceSelectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Competence
         fields = ('id', 'name', 'description', 'start_date',
-                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval', 'avg_corporal_meditions', 'intervals_to_back')
+                  'end_date', 'interval_quantity', 'days_for_interval', 'stats', 'days_remaining_competence', 'days_remaining_interval', 'avg_corporal_meditions', 'avg_corporal_meditions_teams', 'intervals_to_back', 'ranking')
 
 
 class EnterpriseSerializer(serializers.ModelSerializer):
@@ -542,7 +755,6 @@ class GroupSerializer(serializers.ModelSerializer):
 
 class CompetenceRankingSerializer(serializers.ModelSerializer):
     ranking = serializers.SerializerMethodField('get_ranking')
-    
 
     def get_ranking(self, competence):
         today = date.today()
@@ -624,13 +836,15 @@ class CompetenceRankingSerializer(serializers.ModelSerializer):
         interval_rankings = []
         accumulated_ranking = {}
         for interval in intervals:
-            interval_ranking = self._get_interval_ranking(interval, interval_data)
+            interval_ranking = self._get_interval_ranking(
+                interval, interval_data)
             for rank in interval_ranking:
                 team_id = rank['team_id']
                 if team_id not in accumulated_ranking:
                     accumulated_ranking[team_id] = 0
                 accumulated_ranking[team_id] += rank['points']
-            sorted_accumulated_ranking = sorted(accumulated_ranking.items(), key=lambda x: x[1], reverse=True)
+            sorted_accumulated_ranking = sorted(
+                accumulated_ranking.items(), key=lambda x: x[1], reverse=True)
             interval_rankings.append({
                 'interval_id': interval.id,
                 'start_date': interval.start_date,
@@ -646,26 +860,26 @@ class CompetenceRankingSerializer(serializers.ModelSerializer):
         for team_id in interval_data:
             if interval.id in interval_data[team_id]:
                 interval_points[team_id] = interval_data[team_id][interval.id]['accumulated_points']
-        sorted_teams = sorted(interval_points.items(), key=lambda x: x[1], reverse=True)
+        sorted_teams = sorted(interval_points.items(),
+                              key=lambda x: x[1], reverse=True)
         return [{'team_id': team_id, 'team_name': Group.objects.get(id=team_id).name, 'points': points} for team_id, points in sorted_teams]
 
     class Meta:
         model = Competence
         fields = ('id', 'name', 'ranking',)
 
-        
+
 class CompetenceRetrieveSerializer(serializers.ModelSerializer):
     ranking = serializers.SerializerMethodField('get_ranking')
-    
-    
 
     def get_ranking(self, competence):
         request = self.context.get('request')
+        today = date.today()
         intervals = Interval.objects.filter(
-            competence=competence).order_by('start_date').all()
+            competence=competence, end_date__lt=today).order_by('start_date').all()
         team_points = {}
         interval_data = {}
-        
+
         def get_interval_rankings(self, competence):
             ranking_serializer = CompetenceRankingSerializer()
             ranking_data = ranking_serializer.get_ranking(competence)
@@ -766,7 +980,33 @@ class CompetenceRetrieveSerializer(serializers.ModelSerializer):
                 ]
             })
 
-        return {'teams': ranked_teams, 'intervals': get_interval_rankings(self, competence) }
+        # Calcula el ranking por intervalos acumulados
+        interval_rankings = []
+        for i, interval in enumerate(intervals):
+            interval_points = {}
+            for team_id in interval_data:
+                interval_points[team_id] = sum(
+                    interval_data[team_id][intervals[j].id]['average_points']
+                    for j in range(i + 1)
+                )
+            interval_ranking = sorted(
+                interval_points.items(), key=lambda x: x[1], reverse=True)
+            interval_rankings.append({
+                'interval_id': interval.id,
+                'start_date': interval.start_date.strftime('%d-%m'),
+                'end_date': interval.end_date.strftime('%d-%m'),
+                'ranking': [
+                    {
+                        'team_id': team_id,
+                        'team_name': Group.objects.get(id=team_id).name,
+                        'points': points,
+                        'position': position + 1
+                    }
+                    for position, (team_id, points) in enumerate(interval_ranking)
+                ]
+            })
+
+        return {'teams': ranked_teams, 'intervals': interval_rankings}
 
     class Meta:
         model = Competence

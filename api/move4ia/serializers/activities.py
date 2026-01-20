@@ -1,6 +1,6 @@
 """Activities Serialiserz."""
 from rest_framework import serializers
-from api.move4ia.models import Activity, ActivityCategory, RegisterActivity, FileRegisterActivity
+from api.move4ia.models import Activity, ActivityCategory
 
 
 class ActivitySerializer(serializers.ModelSerializer):
@@ -17,17 +17,5 @@ class ActivityCategorySerializer(serializers.ModelSerializer):
 
 class ActivitySerializerForm(serializers.ModelSerializer):
     class Meta:
-        mode = Activity
-        fields = '__all__'
-
-
-class RegisterActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = RegisterActivity
-        fields = '__all__'
-
-
-class FileRegisterActivitySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = FileRegisterActivity
+        model = Activity
         fields = '__all__'

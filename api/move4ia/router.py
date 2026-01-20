@@ -8,11 +8,17 @@ router.register(r'blogs', views_blogs.BlogViewSet, basename='blogs')
 router.register(
     r'enterprises', views_enterprises.EnterpriseViewSet, basename='enterprises')
 router.register(
+    r'groups', views_enterprises.GroupViewSet, basename='groups')
+router.register(
     r'competences', views_enterprises.CompetenceViewSet, basename='competences')
 router.register(r'activities', views_activities.ActivityViewSet,
                 basename='activities')
+router.register(r'activity-categories', views_activities.CategoryActivityViewSet,
+                basename='activity-categories')
 router.register(r'register-activities',
                 views_registers_activity.RegisterActivityViewSet, basename='register-activities')
+router.register(r'file-register-activities',
+                views_registers_activity.FileRegisterActivityViewSet, basename='file-register-activities')
 
 urlpatterns = [
     path('', include(router.urls))

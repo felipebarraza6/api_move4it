@@ -10,8 +10,8 @@ from rest_framework.permissions import (
 
 
 # Models
-from api.move4ia.models import ActivityCategory, Activity, RegisterActivity, FileRegisterActivity
-from api.move4ia.serializers import ActivityCategorySerializer, ActivitySerializer, RegisterActivitySerializer, FileRegisterActivitySerializer
+from api.move4ia.models import ActivityCategory, Activity
+from api.move4ia.serializers import ActivityCategorySerializer, ActivitySerializer
 
 
 class CategoryActivityViewSet(mixins.RetrieveModelMixin,
@@ -63,54 +63,4 @@ class ActivityViewSet(mixins.RetrieveModelMixin,
             }
     filterset_class = FilterActivity
     queryset = Activity.objects.all()
-    lookup_field = 'id'
-
-
-class RegisterActivityViewSet(mixins.RetrieveModelMixin,
-                              mixins.UpdateModelMixin,
-                              mixins.ListModelMixin,
-                              mixins.DestroyModelMixin,
-                              viewsets.GenericViewSet,):
-
-    def get_permissions(self):
-        """Assign permissions based on action."""
-        permissions = [IsAuthenticated]
-        return [p() for p in permissions]
-
-    serializer_class = RegisterActivitySerializer
-    filter_backends = (filters.DjangoFilterBackend,)
-
-    class FilterRegisterActivity (filters.FilterSet):
-        class Meta:
-            model = RegisterActivity
-            fields = {
-                "activity": ['exact'],
-            }
-    filterset_class = FilterRegisterActivity
-    queryset = RegisterActivity.objects.all()
-    lookup_field = 'id'
-
-
-class FileRegisterActivityViewSet(mixins.RetrieveModelMixin,
-                                  mixins.UpdateModelMixin,
-                                  mixins.ListModelMixin,
-                                  mixins.DestroyModelMixin,
-                                  viewsets.GenericViewSet,):
-
-    def get_permissions(self):
-        """Assign permissions based on action."""
-        permissions = [IsAuthenticated]
-        return [p() for p in permissions]
-
-    serializer_class = FileRegisterActivitySerializer
-    filter_backends = (filters.DjangoFilterBackend,)
-
-    class FilterFileRegisterActivity (filters.FilterSet):
-        class Meta:
-            model = FileRegisterActivity
-            fields = {
-                'register_activity': ['exact'],
-            }
-    filterset_class = FilterFileRegisterActivity
-    queryset = FileRegisterActivity.objects.all()
     lookup_field = 'id'

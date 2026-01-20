@@ -7,11 +7,12 @@ from django_filters import rest_framework as filters
 from rest_framework.permissions import IsAuthenticated
 
 # Models
-from api.move4ia.models import RegisterActivity
-from api.move4ia.serializers import RegisterActivitySerializer
+from api.move4ia.models import RegisterActivity, FileRegisterActivity
+from api.move4ia.serializers import RegisterActivitySerializer, FileRegisterActivitySerializer
 
 
-class RegisterActivityViewSet(mixins.RetrieveModelMixin,
+class RegisterActivityViewSet(mixins.CreateModelMixin,
+                              mixins.RetrieveModelMixin,
                               mixins.UpdateModelMixin,
                               mixins.ListModelMixin,
                               mixins.DestroyModelMixin,
@@ -40,3 +41,30 @@ class RegisterActivityViewSet(mixins.RetrieveModelMixin,
             }
 
     filterset_class = FilterRegisterActivity
+
+
+class FileRegisterActivityViewSet(mixins.CreateModelMixin,
+                                  mixins.RetrieveModelMixin,
+                                  mixins.UpdateModelMixin,
+                                  mixins.ListModelMixin,
+                                  mixins.DestroyModelMixin,
+                                  viewsets.GenericViewSet):
+    """ViewSet for handling FileRegisterActivity operations."""
+
+    def get_permissions(self):
+        """Assign permissions based on action."""
+        permissions = [IsAuthenticated]
+        return [p() for p in permissions]
+
+    serializer_class = FileRegisterActivitySerializer
+    filter_backends = (filters.DjangoFilterBackend,)
+    queryset = FileRegisterActivity.objects.all()
+    lookup_field = 'id'
+
+    class FilterFileRegisterActivity (filters.FilterSet):
+        class Meta:
+            model = FileRegisterActivity
+            fields = {
+                'register_activity': ['exact'],
+            }
+    filterset_class = FilterFileRegisterActivity

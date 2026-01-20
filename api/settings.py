@@ -44,7 +44,7 @@ DJANGO_APPS = [
 
 LOCAL_APPS = [
     'api.users',
-    'api.move4it'
+    'api.move4ia'
 ]
 
 THIRD_APPS = [

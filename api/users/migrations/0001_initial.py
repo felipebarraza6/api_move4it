@@ -13,7 +13,7 @@ class Migration(migrations.Migration):
 
     dependencies = [
         ('auth', '0012_alter_user_first_name_max_length'),
-        ('move4it', '0001_initial'),
+        ('move4ia', '0001_initial'),
     ]
 
     operations = [
@@ -65,7 +65,7 @@ class Migration(migrations.Migration):
                 ('is_verified', models.BooleanField(default=False, help_text='Se establece en verdadero cuando el usuario ha verificado su dirección de correo electrónico', verbose_name='vertificado')),
                 ('is_leader', models.BooleanField(default=True, help_text='Se establece en verdadero cuando el usuario es lider de su grupo', verbose_name='es lider')),
                 ('username', models.CharField(blank=True, help_text='Deje este campo en blanco para generar automáticamente un nombre de usuario.', max_length=150, null=True, unique=True)),
-                ('group_participation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='move4it.group', verbose_name='Equipo de participación')),
+                ('group_participation', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='move4ia.group', verbose_name='Equipo de participación')),
                 ('groups', models.ManyToManyField(blank=True, help_text='The groups this user belongs to. A user will get all permissions granted to each of their groups.', related_name='user_set', related_query_name='user', to='auth.group', verbose_name='groups')),
                 ('user_permissions', models.ManyToManyField(blank=True, help_text='Specific permissions for this user.', related_name='user_set', related_query_name='user', to='auth.permission', verbose_name='user permissions')),
             ],

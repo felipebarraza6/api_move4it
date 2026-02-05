@@ -9,8 +9,8 @@ from django.contrib.auth import password_validation, authenticate
 
 # Models
 from api.users.models import User, Profile, CorporalMeditions
-from api.move4it.models import Enterprise, Group, TypeMedition, RegisterActivity, Competence
-from api.move4it.serializers import EnterpriseSerializer
+from api.move4ia.models import Enterprise, Group, TypeMedition, RegisterActivity, Competence
+from api.move4ia.serializers import EnterpriseSerializer
 
 
 class CorporalMeditionsModelSerializer(serializers.ModelSerializer):

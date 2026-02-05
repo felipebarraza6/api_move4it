@@ -6,7 +6,7 @@ from django.contrib.auth.models import AbstractUser
 
 # Utils
 from api.utils.models import ModelApi
-from api.move4it.models import Group
+from api.move4ia.models import Group
 import re
 import json
 

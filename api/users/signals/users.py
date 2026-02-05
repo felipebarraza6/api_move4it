@@ -27,8 +27,8 @@ def password_reset_token_created(sender, instance, reset_password_token, *args, 
             reset_password_token.key)
     }
 
-    subject = 'RECUPERAR CONTRASEÑA - Move4it'
-    from_email = '<contacto@move4it.cl>'
+    subject = 'RECUPERAR CONTRASEÑA - Move4ia'
+    from_email = '<contacto@move4ia.cl>'
     content = render_to_string(
         'email/user_reset_password.html',
         {
